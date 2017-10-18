@@ -3,8 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <Windows.h>
 
-// Onde no mundo esta o dinheiro do Brasil?
+#define DELAY 15 // duracao do delay do slowprint
+
 
 
 struct tipoCasos {
@@ -27,34 +29,47 @@ struct tipoAdm {
 	int senha;
 };
 
+tipoAdm admLog; // GLOBAl do adm logado
+tipoJogador jogadorLog;
 
+// printa devagar
 
-int tranforma(char v[]){
-	int tam = strlen(v);
-	int res = 0;
-	int cas = 1;
+void slowprint(char s[], int delay){
 
-	for (int i = tam - 1; i >= 0; i--){
+	int tam = strlen(s);
+	int i;
 
-		res = ((v[i] - 48) * cas) + res;
-		cas = cas * 10;
+	for (i = 0; i < tam; i++){
+
+		printf("%c", s[i]);
+		Sleep(delay);
+		
 	}
-	return res;
+
 }
+
+
 
 //adm
 int loginadm(tipoAdm adm);  //retorna 1 se o login foi efetuado, 0 se nao. 
-int admconfig(tipoAdm adm);
-int addcaso();		// retorna 1 se a insercao foi um sucesso, 0 se nao.
 
-int cripto(int pass, int action); //funcao de criptografia de senhas, parametros ->> senha = senha a ser criptografada
-//   ->> action = acao que sera feita, ou seja,
-//       1 para criptografar 0 para descriptografar
+int admconfig(tipoAdm adm);	// retorna 0 quando pedido pra sair
 
+int addcaso();	// retorna 1 se a insercao foi um sucesso, 0 se nao.
+
+int alterardados(tipoAdm adm); //retorna 1 se a alteracao foi feita, 0 se nao
+
+int tranforma(char v[]);
+int cripto(int pass, int action);	//FUNCAO DE CRIPTOGRAFIA DE SENHAS, PARAMETROS:
+									/*
+									->> pass = senha a ser criptografada
+									->> action = acao que sera feita, ou seja, 1 para criptografar 0 para descriptografar
+									 */
 
 
 void main() {
 
+	system("color 0A");
 	// Abertura da referencia dos arquivos
 	FILE *casos = fopen("casos.txt", "r+");
 	if (!casos)
@@ -64,34 +79,47 @@ void main() {
 		printf("ERRO: Arquivo de usuarios nao encontrado!!\n");
 
 
-	fclose(usuarios);
+	fclose(usuarios); // Fecho os dois , essa abertura foi so pra verificacao
 	fclose(casos);
 
 	tipoJogador jogador;
 	tipoAdm adm;
 
-	int op = 0, tentativas = 3,resCode=-2;
-
-
-	printf("\n\t\t\t\tWhere is Sergio Cabral in the World?\n\n");
-	printf("Bem-vindo!!\n\n");
-	printf("1 - Procurador\n");
-	printf("2 - Detetive\n");
-	printf("0 - Sair\n>>> ");
+	int op = 0, tentativas,resCode=-2;
+	do {
+		
+	system("cls");
+	printf("\n\t\t\t\t");
+	slowprint("Where is Sergio Cabral in the World?", DELAY);
+	printf("\n\n");
+	slowprint("Bem-vindo!!\n\nQuem eh voce?",DELAY);
+	printf("\n\n");
+	slowprint("1 - Procurador (ADM)", DELAY);
+	printf("\n");
+	slowprint("2 - Detetive (JOGADOR)", DELAY);
+	printf("\n");
+	slowprint("0 - Sair", DELAY);
+	printf("\n>>> ");
 	scanf("%i", &op);
 
-	do {
+	
 		switch (op) {
 
 		case 1://ADM
+			tentativas = 3;
 			while (tentativas > 0) {
 
-				printf("Procurador no teclado, digite seu nome...\n\n");
+				slowprint("Procurador no teclado, digite seu nome...", DELAY);
+				printf("\n\n>>>");
 				fflush(stdin);
 				gets_s(adm.nome);
+				strcpy(admLog.nome, adm.nome);
 				_strupr(adm.nome);
-				printf("Otimo, agora digite sua senha...\n");
-				printf("\t\tATENCAO VERIFIQUE SE NAO HA NINGUEM TE OBSERVANDO\n\n");
+				_strupr(admLog.nome);
+				slowprint("Otimo, agora digite sua senha...", DELAY);
+				printf("\n\t\t");
+				slowprint("ATENCAO VERIFIQUE SE NAO HA NINGUEM TE OBSERVANDO", DELAY);
+				printf("\n\n>>>");
 				fflush(stdin);
 				scanf("%i", &adm.senha);
 				system("cls");
@@ -105,14 +133,16 @@ void main() {
 				}
 				else if (resCode == -1){
 					tentativas = -99;
-					printf("Contate seu superior\n\n");
+					slowprint("Contate seu superior!", DELAY);
+					printf("\n\n");
 				}
 				else if(resCode == 0) {
 					//login falhou, senha ou usuario incorreto
 					//atualiza as tentativas, no maximo 3 tentativas
 					system("cls");
 					tentativas--;
-					printf("ERRO!, senha ou usuario incorreto\n\n");
+					slowprint("ERRO!, senha ou usuario incorreto", DELAY);
+					printf("\n\n");
 					printf("Tentativas restantes ->> %i \n", tentativas);
 				}
 			}
@@ -120,12 +150,16 @@ void main() {
 			if (tentativas == -1) {
 				//Menu do ADM
 				admconfig(adm);
+				
 
 			}
 			else{
 
+				
 				system("cls");
-				printf("Tentativas esgotadas\n");
+				slowprint("Tentativas esgotadas!", DELAY);
+				printf("\nPressione qualquer tecla para voltar ao menu...");
+				system("pause>nul");
 
 			}
 
@@ -133,7 +167,8 @@ void main() {
 			break;
 
 		case 2://JOGADOR
-			printf("Detetive no teclado, digite seu usuario...\n\n");
+			slowprint("Detetive no teclado, digite seu usuario...", DELAY);
+			printf("\n\n>>>");
 			gets_s(jogador.nome);
 
 			break;
@@ -141,11 +176,20 @@ void main() {
 
 		case 0://SAIR
 			system("cls");
+			slowprint("Obrigado por jogar!!", DELAY);
+			printf("\nAlunos:\n\n");
+			slowprint(" Iago Lourenco - 156160116", DELAY);
+			printf("\n");
+			slowprint(" Gabriel Souza - ", DELAY);
+			printf("\n");
+			slowprint("Pressione qualquer tecla para sair...", DELAY);
+			system("pause>nul");
 			break;
 
 
 		default:
-			printf("Opcao invalida\n");
+			slowprint("Opcao invalida", DELAY);
+			printf("\n");
 			break;
 		}
 
@@ -259,36 +303,48 @@ int admconfig(tipoAdm adm) {
 	//menu de configuracao do adm
 	
 	int op;
-
-	printf("Bem vindo, %s \n\n",adm.nome);
+	do{
+		system("cls");
+	slowprint("Bem vindo, ", DELAY);
+	printf("%s \n\n",admLog.nome);
 	
-	printf("1 - Adicionar caso\n");
-	printf("2 - Alteras meus dados\n");
-	printf("0 - Sair\n>>> ");
+	slowprint("1 - Adicionar caso", DELAY);
+	printf("\n");
+	slowprint("2 - Alterar meus dados", DELAY);
+	printf("\n");
+	slowprint("0 - Sair", DELAY);
+	printf("\n>>> ");
 	scanf("%i", &op);
 
-	switch (op)
-	{
-
-	case 1://ADD CASO
-
-		addcaso();
-
-		break;
-
-	case 2://ALTERAR DADOS
-
-		break;
-
-	case 0://SAIR
-		return 0;
-		break;
-	default:
-		printf("Opcao invalida!\n");
-		break;
-	}
 	
-	
+		switch (op)
+		{
+
+		case 1://ADD CASO
+
+			addcaso();
+
+			break;
+
+		case 2://ALTERAR DADOS
+
+			op = alterardados(adm);
+
+			break;
+
+		case 0://SAIR
+			return 0;
+			break;
+		case -1:
+			op = -1;
+			break;
+		default:
+			slowprint("Opcao invalida!", DELAY);
+			printf("\n");
+			break;
+		}
+
+	} while (op == -1 );
 	system("pause");
 
 
@@ -301,9 +357,8 @@ int cripto(int pass, int action)
 
 	if (action == 1) {		// criptografar
 
+		
 		x = (pass * 2);
-
-
 
 	}
 	else {
@@ -317,5 +372,150 @@ int cripto(int pass, int action)
 
 
 	return x;
+
+}
+
+int tranforma(char v[]){
+	int tam = strlen(v);
+	int res = 0;
+	int casa = 1;
+
+	for (int i = tam - 1; i >= 0; i--){
+
+		res = ((v[i] - 48) * casa) + res;
+		casa = casa * 10;
+	}
+	return res;
+} // transforma um vetor de char em um inteiro
+// Ex. v[] = {'1','2','3'} ->> return 123
+
+int addcaso(){
+	//Insercao de novos casos
+	/*
+	FUNCIONAMENTO:
+
+		1 - Cada caso tem,pelo menos, 7 pistas que levam a resolucao
+		2 - Cada caso tem um nivel de dificuldade
+		3 - Cada caso tem sua descricao
+	
+	
+	FORMATACAO DO ARQUIVO casos.txt
+
+
+	#<numero do caso: INT>
+	d<dificuldade: INT>
+	p<No DE PISTAS: INT>
+	
+	<	 
+	
+		1~~~~~~;		\
+		2~~~~~~;		 \
+		3				  \
+		4				   \	Pistas 
+		.				   /	do caso  ->>  ';' define o fim da pista
+		.				  /
+		.				 /
+		n				/
+	
+	>
+
+	%
+
+		~~~~~~~~~~	
+		~~~~~~~~~~		//		Descricao do
+		~~~~~~~~		//			caso
+		~~~~~~~~~~
+
+
+	%
+
+	
+	*/
+
+
+	tipoCasos casos;
+
+	slowprint("Cadastro de Caso!", DELAY);
+	printf("\n\n");
+
+
+
+
+
+
+
+	return 0;
+}
+
+int alterardados(tipoAdm adm){
+
+	int op;
+	FILE *admdata = fopen("users.txt", "r+");
+	if (!admdata){
+		printf("ERRO: Arquivos de usuario nao encontrados!");
+		return 0;
+	}
+	char nomeAUX[50];
+	int senhaAUX,tam=strlen(adm.nome),i=0;
+
+	do{
+		system("cls");
+		slowprint("Alterar Dados", DELAY);
+		printf("\n\n");
+
+		slowprint("1 - Mudar nome", DELAY);
+		printf("\n");
+		slowprint("2 - Mudar senha", DELAY);
+		printf("\n");
+		slowprint("0 - Sair", DELAY);
+		printf("\n>>>");
+		scanf("%i", &op);
+
+		switch (op){
+
+		case 1:
+			printf("\n");
+			slowprint("Digite o novo nome:", DELAY);
+			printf("\n");
+			fflush(stdin);
+			gets_s(admLog.nome);
+			_strupr(admLog.nome);
+
+			fgetc(admdata);  // passo pelo '<'
+			
+
+			fclose(admdata);
+			//Descobrir como substituir no arquivo o nome
+			break;
+	
+		
+		case 2:
+			printf("\n");
+			slowprint("Digite a nova senha:", DELAY);
+			printf("\n");
+			senhaAUX = adm.senha;
+			scanf("%i", &adm.senha);
+
+
+			fclose(admdata);
+			//Descobrir como substituir no arquivo o senha
+			break;
+
+		case 0://SAIR
+			fclose(admdata);
+			return -1;
+			break;
+		
+		default:
+			slowprint("Opcao invalida!", DELAY);
+			printf("\n");
+			break;
+
+		}
+
+	} while (op != 0);
+
+	fclose(admdata);
+	return -1;
 
 }
