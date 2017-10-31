@@ -5,21 +5,27 @@
 #include <string.h>
 #include <Windows.h>
 
-#define DELAY 15 // duracao do delay do slowprint
+#define DELAY 0 // duracao do delay do slowprint
 
 
+struct tipoPistas{
+
+	char pista[100];
+};
 
 struct tipoCasos {
 
-	char descricao[100];
 	int id;
+	char descricao[120];
 	int dificuldade;
+	tipoPistas pistas[20];
+
 };
 
 struct tipoJogador {
 
 	char nome[50];
-	int level;
+	int nivel;
 
 };
 
@@ -79,7 +85,7 @@ void main() {
 		exit(0); // fechar programa
 	}
 
-	
+
 
 	fclose(usuarios); // Fecho os dois , essa abertura foi so pra verificacao
 	fclose(casos);
@@ -212,7 +218,7 @@ int loginadm(tipoAdm adm) {			//retorna 1 se o login foi efetuado, 0 se nao.
 	<USUARIO:senha>
 	Ex.
 
-	<IAGO:iago123>
+	<ADMIN:admin>
 
 	OBS: ADMS TEM O NOME EM LETRA MAIUSCULA E jogadores em minuscula
 	*/
@@ -222,87 +228,48 @@ int loginadm(tipoAdm adm) {			//retorna 1 se o login foi efetuado, 0 se nao.
 		return -1;
 	}
 
-	int tam = strlen(adm.nome); // qtd de letras do nome
+	int tam = strlen(adm.nome); // qtd de letras do nome digitado
 	char c, usuarioArq[50], senhaArqV[8];
 	int i = 0;
+	tipoAdm verifica;// aqui ficara o usuario que vira do arquivo
 
+
+
+	rewind(admdata);
+	fread(&verifica, sizeof(tipoAdm), 1, admdata);
+	printf("\n%s\n%s\n", verifica.nome, verifica.senha);
+	system("pause");
+	rewind(admdata);
 
 	if (strlen(adm.senha) > 6){ // verificando se a senha eh valida
 		fclose(admdata);
 		return 0;
 	}
 
-	fwrite(&adm, sizeof(tipoAdm), 1, admdata);
+
+	fread(&verifica, sizeof(tipoAdm), 1, admdata); // leio o primeiro dado do "users.apc" pois o adm sempre eh o primeiro
 	
-	c = fgetc(admdata);
-	while (!feof(admdata))			//ate o final do arquivo
-	{
-
-		if (c == '<' || c == '>'){
-			// se for os separador pego o proximo caracter
-
-			c = fgetc(admdata);
-
+	if (strcmp(adm.nome, verifica.nome) == 0){
+		// Nomes conferem, prossiga para a senha
+		if (strcmp(adm.senha, verifica.senha) == 0){
+			//Senhas conferem retorne OK
+			fclose(admdata);
+			return 1;
 		}
-		else
-		{
-			i = 0;
-			while (c != ':')
-			{
-				usuarioArq[i] = c; // pego o nome cadastrado no arquivo
-				c = fgetc(admdata);
-				i++;
-
-			}
-			usuarioArq[i] = '\0'; // fecho a string
-
-			if (strcmp(usuarioArq, adm.nome) != 0){
-				// se o usuario pego do arquivo for diferente do digitado 	
-				return 0; // retorno o erro
-			}
-
-			else {
-				//se nao verifico a senha
-
-				if (c == ':') {//pego do separador pra frente
-					i = 0;
-					c = fgetc(admdata);
-					while (c != '>'){//ate o proximo usuario
-
-						senhaArqV[i] = c;
-						c = fgetc(admdata);
-						i++;
-					}
-					senhaArqV[i] = '\0'; // fecho a string
-
-					// vejo se a senha digitada eh igual a cadastrada
-					if (strcmp(senhaArqV,adm.senha) == 0){
-					 //se sim retorno sucesso
-						system("cls");
-						fclose(admdata);
-						return 1;
-
-
-					}
-					else{
-						// se nao retorno o erro
-						fclose(admdata);
-						return 0;
-					}
-
-
-				}
-
-			}
-
-
+		else{
+			//Senha incorreta retorne erro
+			fclose(admdata);
+			return 0;
 		}
-
-
+	}
+	else{
+		//Nomes diferem retorne erro
+		fclose(admdata);
+		return 0;
 	}
 
-	fclose(admdata);
-	return 0;
+
+	
 
 
 
@@ -362,58 +329,50 @@ int admconfig(tipoAdm adm) {
 }
 
 int addcaso(){
-	//Insercao de novos casos
-	/*
-	FUNCIONAMENTO:
-
-	1 - Cada caso tem,pelo menos, 7 pistas que levam a resolucao
-	2 - Cada caso tem um nivel de dificuldade
-	3 - Cada caso tem sua descricao
-
-
-	FORMATACAO DO ARQUIVO casos.txt
-
-
-	#<numero do caso: INT>
-	d<dificuldade: INT>
-	p<No DE PISTAS: INT>
-
-	<
-
-	1~~~~~~;		\
-	2~~~~~~;		 \
-	3				  \
-	4				   \	Pistas
-	.				   /	do caso  ->>  ';' define o fim da pista
-	.				  /
-	.				 /
-	n				/
-
-	>
-
-	%
-
-	~~~~~~~~~~
-	~~~~~~~~~~		//		Descricao do
-	~~~~~~~~		//			caso
-	~~~~~~~~~~
-
-
-	%
-
-
-	*/
-
-
+	
 	tipoCasos casos;
+	int contapistas=0;
 
 	slowprint("Cadastro de Caso!", DELAY);
 	printf("\n\n");
+	//Formulario de prenchimento de casos
+
+	slowprint("Bem vindo, Procurador  ", DELAY);
+	printf("%s\n", admLog.nome);
+
+	slowprint("Qual a dificuldade do caso:", DELAY);
+	printf("\n\t");
+	slowprint("1) Facil:", DELAY);
+	printf("\n\t");
+	slowprint("2) Medio:", DELAY);			//dificuldade
+	printf("\n\t");
+	slowprint("3) Dificil:", DELAY);
+	printf("\nDigite o numero>> ");
+	scanf("%i", casos.dificuldade);
+	//==================================
+	system("cls");
+	slowprint("Descreva o caso em poucas palavras, pressione ENTER ao finalizar: |!| NO MAXIMO 100 CARACTERES |!| ", DELAY);
+	printf("\n>>> ");
+	fflush(stdin);
+	gets_s(casos.descricao);			//Descricao
+	//==================================
+	system("cls");
+	slowprint("Digite as pistas ,pressione ENTER ao final de cada uma, e ENTER duas vezes para finalizar", DELAY);
+	printf("\n");
+	while (contapistas < 20){
+		slowprint("Pista atual = ", DELAY);
+		printf("%i\n\n", contapistas+1);
+
+	
+	
+	}
 
 
 
 
+	}
 
+	
 
 
 	return 0;
@@ -422,13 +381,15 @@ int addcaso(){
 int alterardados(tipoAdm adm){
 
 	int op;
-	FILE *admdata = fopen("users.txt", "r+");
+	FILE *admdata = fopen("users.apc", "rb+");
 	if (!admdata){
-		printf("ERRO: Arquivos de usuario nao encontrados!");
+		printf("ERRO: Nao foi possivel acessar os arquivos de usuario!");
 		return 0;
 	}
 	char nomeAUX[50], senhaAUX[10];
 	int tam = strlen(adm.nome), i = 0;
+
+	tipoAdm teste;
 
 	do{
 		system("cls");
@@ -446,19 +407,23 @@ int alterardados(tipoAdm adm){
 		switch (op){
 
 		case 1:
-			
+
 			printf("\n");
 			slowprint("Digite o novo nome:", DELAY);
 			printf("\n");
 			fflush(stdin);
-			gets_s(admLog.nome);
-			_strupr(admLog.nome);
+			gets_s(adm.nome);
+			_strupr(adm.nome);
 
-			fgetc(admdata);  // passo pelo '<'
+			rewind(admdata);
+			fwrite(&adm, sizeof(tipoAdm), 1, admdata); // reescrevo mudando o nome
+				
+			strcpy(admLog.nome, adm.nome);   //copio pra GLOBAL
+			rewind(admdata);
+			fread(&teste, sizeof(tipoAdm), 1, admdata);
+			printf("\n%s\n%s\n", teste.nome,teste.senha);
+			system("pause");
 
-
-			fclose(admdata);
-			//Descobrir como substituir no arquivo o nome
 			break;
 
 
@@ -466,14 +431,21 @@ int alterardados(tipoAdm adm){
 			printf("\n");
 			slowprint("Digite a nova senha:", DELAY);
 			printf("\n");
-			slowprint("4 digitos", DELAY);
+			slowprint("Maximo de 6 digitos!", DELAY);
 			printf("\n");
-			strcpy(senhaAUX,adm.senha);
-			scanf("%i", &adm.senha);
+			strcpy(senhaAUX, adm.senha);
+			fflush(stdin);
+			gets_s(adm.senha);
 
+			rewind(admdata);
+			fwrite(&adm, sizeof(tipoAdm), 1, admdata); // reescrevo mudando a senha
 
-			fclose(admdata);
-			//Descobrir como substituir no arquivo o senha
+			strcpy(admLog.senha, adm.senha);   //copio pra GLOBAL
+			rewind(admdata);
+			fread(&teste, sizeof(tipoAdm), 1, admdata);
+			printf("\n%s\n%s\n", teste.nome, teste.senha);
+			system("pause");
+
 			break;
 
 		case 0://SAIR
