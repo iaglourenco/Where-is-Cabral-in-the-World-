@@ -16,7 +16,7 @@ struct tipoPistas{
 struct tipoCasos {
 
 	int id;
-	char descricao[120];
+	char descricao[150];
 	int dificuldade;
 	tipoPistas pistas[20];
 
@@ -71,7 +71,7 @@ void main() {
 
 	system("color 0A");
 	// Abertura da referencia dos arquivos
-	FILE *casos = fopen("casos.apc", "rb+");
+	FILE *casos = fopen("casos.apc", "wb+");
 	if (!casos){
 		printf("ERRO: Arquivo de casos nao encontrado!!\n");
 		system("pause");
@@ -229,7 +229,6 @@ int loginadm(tipoAdm adm) {			//retorna 1 se o login foi efetuado, 0 se nao.
 	}
 
 	int tam = strlen(adm.nome); // qtd de letras do nome digitado
-	char c, usuarioArq[50], senhaArqV[8];
 	int i = 0;
 	tipoAdm verifica;// aqui ficara o usuario que vira do arquivo
 
@@ -279,7 +278,7 @@ int loginadm(tipoAdm adm) {			//retorna 1 se o login foi efetuado, 0 se nao.
 int admconfig(tipoAdm adm) {
 	//menu de configuracao do adm
 
-	int op;
+	int op,resCode=-2;
 	do{
 		system("cls");
 		slowprint("Bem vindo, ", DELAY);
@@ -299,7 +298,30 @@ int admconfig(tipoAdm adm) {
 
 		case 1://ADD CASO
 
-			addcaso();
+			resCode = addcaso();
+
+			switch (resCode){
+
+			case 0://ERRO
+				system("cls");
+				slowprint("Erro ao cadastrar!", DELAY);
+				printf("\n");
+				system("pause");
+				break;
+			case 1://SUCESSO
+				system("cls");
+				slowprint("Cadastrado com sucesso!", DELAY);
+				printf("\n");
+				system("pause");
+				break;
+			case -1://CANCELADO
+				system("cls");
+				slowprint("Cadastro cancelado!", DELAY);
+				printf("\n");
+				system("pause");
+
+			}
+			
 
 			break;
 
@@ -329,11 +351,17 @@ int admconfig(tipoAdm adm) {
 }
 
 int addcaso(){
-	
-	tipoCasos casos;
-	int contapistas=0;
 
-	slowprint("Cadastro de Caso!", DELAY);
+	FILE *arquivoCasos = fopen("casos.apc", "ab+");
+	if (!arquivoCasos){
+		return 0;
+	}
+
+	tipoCasos casos;
+	int contapistas = 0;
+	char pista[100], cf;
+
+	slowprint("Cadastro de Casos!", DELAY);
 	printf("\n\n");
 	//Formulario de prenchimento de casos
 
@@ -348,31 +376,67 @@ int addcaso(){
 	printf("\n\t");
 	slowprint("3) Dificil:", DELAY);
 	printf("\nDigite o numero>> ");
-	scanf("%i", casos.dificuldade);
+	scanf("%i", &casos.dificuldade);
 	//==================================
 	system("cls");
 	slowprint("Descreva o caso em poucas palavras, pressione ENTER ao finalizar: |!| NO MAXIMO 100 CARACTERES |!| ", DELAY);
 	printf("\n>>> ");
 	fflush(stdin);
-	gets_s(casos.descricao);			//Descricao
+	gets_s(casos.descricao);//Descricao
+	_strupr(casos.descricao);
 	//==================================
 	system("cls");
-	slowprint("Digite as pistas ,pressione ENTER ao final de cada uma, e ENTER duas vezes para finalizar", DELAY);
+	slowprint("Insercao de pistas - Pressione ENTER ao final de cada uma, digite sair para finalizar", DELAY);
+	printf("\n");
+	slowprint("MINIMO 7 pistas", DELAY);
+	printf("\n");
+	slowprint("MAXIMO 20 pistas", DELAY);
 	printf("\n");
 	while (contapistas < 20){
 		slowprint("Pista atual = ", DELAY);
-		printf("%i\n\n", contapistas+1);
+		printf("%i\n\n", contapistas + 1);
 
-	
-	
+		slowprint("Digite a pista:  [PRESSIONE ENTER AO TERMINAR]", DELAY);
+		printf("\n>>>");
+		gets_s(pista);
+		_strupr(pista);
+		if (strcmp(pista, "SAIR") == 0){
+			break;
+		}
+		else{
+
+			strcpy(casos.pistas[contapistas].pista, pista);
+
+		}
+		contapistas++;
+	}
+	system("cls");
+	slowprint("Confirme os dados", DELAY);
+	printf("Dificuldade = %i\n\n", casos.dificuldade);
+	printf("Descricao = %s\n\n", casos.descricao);
+	printf("Pistas :\n");
+	while (contapistas > 0){
+		printf("Pista = %i - %s\n\n", contapistas - (contapistas - 1), casos.pistas[contapistas].pista);
+		contapistas--;
 	}
 
+	slowprint("Cadastrar?  (S/N)", DELAY);
+	printf("\n>>>");
+	scanf("%c", &cf);
 
+	if (cf == 's' || cf == 'S'){
 
+		if (!fwrite(&casos, sizeof(tipoCasos), 1, arquivoCasos)){
+			return 0;	//erro ao cadastrar
+		}
+		else{
+			return 1; //sucesso ao cadastrar
+		}
 
 	}
-
-	
+	else{
+		return -1; // cancelado pelo usuario
+	}
 
 
 	return 0;
@@ -386,7 +450,6 @@ int alterardados(tipoAdm adm){
 		printf("ERRO: Nao foi possivel acessar os arquivos de usuario!");
 		return 0;
 	}
-	char nomeAUX[50], senhaAUX[10];
 	int tam = strlen(adm.nome), i = 0;
 
 	tipoAdm teste;
@@ -433,7 +496,6 @@ int alterardados(tipoAdm adm){
 			printf("\n");
 			slowprint("Maximo de 6 digitos!", DELAY);
 			printf("\n");
-			strcpy(senhaAUX, adm.senha);
 			fflush(stdin);
 			gets_s(adm.senha);
 
