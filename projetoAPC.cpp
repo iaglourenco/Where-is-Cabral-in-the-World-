@@ -5,7 +5,7 @@
 #include <string.h>
 #include <Windows.h>
 
-#define DELAY 0 // duracao do delay do slowprint
+#define DELAY 15 // duracao do delay do slowprint
 
 
 struct tipoPistas{
@@ -22,10 +22,19 @@ struct tipoCasos {
 
 };
 
+struct tipoSavepoint{
+	int casoid;
+	int tempo;
+	int pontuacao;
+
+};
+
 struct tipoJogador {
 
 	char nome[50];
 	int nivel;
+	int pontos;
+	tipoSavepoint savepoint;
 
 };
 
@@ -36,7 +45,7 @@ struct tipoAdm {
 };
 
 tipoAdm admLog; // GLOBAL do adm logado
-tipoJogador jogadorLog;
+tipoJogador jogadorLog; //GLOBAL do jogador logado
 
 // printa devagar
 void slowprint(char s[], int delay){
@@ -66,6 +75,21 @@ int alterardados(tipoAdm adm); //retorna 1 se a alteracao foi feita, 0 se nao
 
 //===============================================================================================
 
+//jogador
+
+int jogo(tipoJogador jogador,tipoCasos casos); //retorna 1 se ganhou, 0 se perdeu
+
+int verificalogin(tipoJogador jogador); // verifica se o jogador tem um jogo salvo, retorna 1 se SIM, 0 se NAO
+
+int loginjogador(tipoJogador jogador); // retorna 1 se login OK, 0 se nao
+
+int salvarjogo(tipoJogador jogador); // salva o jogo para continuar depois, 1 se OK, 0 se ERRO
+
+int rankingtop(tipoJogador jogador);
+int rankingeral(tipoJogador jogador);
+
+
+
 
 void main() {
 
@@ -92,8 +116,9 @@ void main() {
 
 	tipoJogador jogador;
 	tipoAdm adm;
+	tipoCasos caso;
 
-	int op = 0, tentativas, resCode = -2;
+	int op = -21, tentativas, resCode = -2;
 	do {
 
 		system("cls");
@@ -108,15 +133,16 @@ void main() {
 		printf("\n");
 		slowprint("0 - Sair", DELAY);
 		printf("\n>>> ");
+		fflush(stdin);
 		scanf("%i", &op);
 
 
 		switch (op) {
-
+#pragma region ADM
 		case 1://ADM
 			tentativas = 3;
 			while (tentativas > 0) {
-
+				resCode = -2;
 				slowprint("Procurador no teclado, digite seu nome...", DELAY);
 				printf("\n\n>>>");
 				fflush(stdin);
@@ -174,13 +200,42 @@ void main() {
 
 			}
 
+		break;
 
-			break;
-
+#pragma endregion ADM
 		case 2://JOGADOR
+			resCode = -2;//reset dos erros
 			slowprint("Detetive no teclado, digite seu usuario...", DELAY);
 			printf("\n\n>>>");
+			fflush(stdin);
 			gets_s(jogador.nome);
+			resCode = verificalogin(jogador); // 1 se há save point, 0 se nao
+
+			if (resCode == 1){
+				//há savepoint
+				// inicio o jogo de onde ele parou
+				caso.id = 123;// jogador.savepoint.casoid; // pego o caso que ele parou // TODO: pegar todos os dados necessarios( tempo restante,pontuacao...)
+				
+				if (loginjogador(jogador)){
+				
+					jogo(jogador, caso); // inicio o jogo
+				
+				}
+				else{
+					system("cls");
+					slowprint("Senha incorreta!", DELAY);
+					printf("\n");
+				}
+			}
+			if (resCode == 0){ 
+				// nao ha savepoint
+				//TODO: Sorteio um caso pelo id 
+				//caso.id = rand();  //pegar todos os dados necessarios
+				caso.id = 123;
+				jogo(jogador, caso);
+
+			}
+
 
 			break;
 
@@ -213,6 +268,29 @@ void main() {
 
 }
 
+//jogador
+int jogo(tipoJogador jogador, tipoCasos caso){
+
+	return 0;
+}
+
+int loginjogador(tipoJogador jogador){
+
+	return 0;
+
+}
+
+int verificalogin(tipoJogador jogador){
+
+	return 0;
+}
+
+
+
+
+
+
+//adm
 int loginadm(tipoAdm adm) {			//retorna 1 se o login foi efetuado, 0 se nao.
 	/*FUNCIONAMENTO DOS ARQUIVOS DE LOGIN ADM
 	<USUARIO:senha>
@@ -234,10 +312,6 @@ int loginadm(tipoAdm adm) {			//retorna 1 se o login foi efetuado, 0 se nao.
 
 
 
-	rewind(admdata);
-	fread(&verifica, sizeof(tipoAdm), 1, admdata);
-	printf("\n%s\n%s\n", verifica.nome, verifica.senha);
-	system("pause");
 	rewind(admdata);
 
 	if (strlen(adm.senha) > 6){ // verificando se a senha eh valida
@@ -306,20 +380,23 @@ int admconfig(tipoAdm adm) {
 				system("cls");
 				slowprint("Erro ao cadastrar!", DELAY);
 				printf("\n");
-				system("pause");
+				op = -1;
 				break;
 			case 1://SUCESSO
 				system("cls");
 				slowprint("Cadastrado com sucesso!", DELAY);
 				printf("\n");
-				system("pause");
+				op = -1;
 				break;
 			case -1://CANCELADO
 				system("cls");
 				slowprint("Cadastro cancelado!", DELAY);
 				printf("\n");
-				system("pause");
-
+				slowprint("Pressione qualquer tecla para continuar...",DELAY);
+				system("pause>nul");
+				printf("\n");
+				op = -1;
+	
 			}
 			
 
@@ -327,15 +404,12 @@ int admconfig(tipoAdm adm) {
 
 		case 2://ALTERAR DADOS
 
-			op = alterardados(adm);
-
+			alterardados(adm);
+			op = -1;
 			break;
 
 		case 0://SAIR
 			return 0;
-			break;
-		case -1:
-			op = -1;
 			break;
 		default:
 			slowprint("Opcao invalida!", DELAY);
@@ -358,9 +432,10 @@ int addcaso(){
 	}
 
 	tipoCasos casos;
-	int contapistas = 0;
+	int contapistas = 0,i=0;
 	char pista[100], cf;
-
+	
+	system("cls");
 	slowprint("Cadastro de Casos!", DELAY);
 	printf("\n\n");
 	//Formulario de prenchimento de casos
@@ -386,17 +461,18 @@ int addcaso(){
 	_strupr(casos.descricao);
 	//==================================
 	system("cls");
-	slowprint("Insercao de pistas - Pressione ENTER ao final de cada uma, digite sair para finalizar", DELAY);
-	printf("\n");
-	slowprint("MINIMO 7 pistas", DELAY);
-	printf("\n");
-	slowprint("MAXIMO 20 pistas", DELAY);
-	printf("\n");
+	slowprint("Insercao de pistas - Pressione ||ENTER|| ao final de cada uma, digite ||SAIR|| para finalizar", DELAY);
+	printf("\n\n");
+	slowprint("|!|MINIMO 7 pistas|!|", DELAY);
+	printf("\n\n");
+	slowprint("|!|MAXIMO 20 pistas|!|", DELAY);
+	printf("\n\n");
+
 	while (contapistas < 20){
 		slowprint("Pista atual = ", DELAY);
 		printf("%i\n\n", contapistas + 1);
 
-		slowprint("Digite a pista:  [PRESSIONE ENTER AO TERMINAR]", DELAY);
+		slowprint("Digite a pista:  [PRESSIONE ENTER AO TERMINAR][ESCREVA SAIR PARA FINALIZAR A INSERCAO DE PISTAS]", DELAY);
 		printf("\n>>>");
 		gets_s(pista);
 		_strupr(pista);
@@ -412,14 +488,16 @@ int addcaso(){
 	}
 	system("cls");
 	slowprint("Confirme os dados", DELAY);
-	printf("Dificuldade = %i\n\n", casos.dificuldade);
+	printf("\n\nDificuldade = %i\n\n", casos.dificuldade);
 	printf("Descricao = %s\n\n", casos.descricao);
-	printf("Pistas :\n");
-	while (contapistas > 0){
-		printf("Pista = %i - %s\n\n", contapistas - (contapistas - 1), casos.pistas[contapistas].pista);
-		contapistas--;
+	printf("Pistas :\n\n");
+	for (i = 0; i < contapistas; i++){
+
+		printf("Pista No. %i - %s \n", i + 1, casos.pistas[i].pista);
+
 	}
 
+	printf("\n");
 	slowprint("Cadastrar?  (S/N)", DELAY);
 	printf("\n>>>");
 	scanf("%c", &cf);
@@ -484,7 +562,7 @@ int alterardados(tipoAdm adm){
 			strcpy(admLog.nome, adm.nome);   //copio pra GLOBAL
 			rewind(admdata);
 			fread(&teste, sizeof(tipoAdm), 1, admdata);
-			printf("\n%s\n%s\n", teste.nome,teste.senha);
+			printf("\nNovo Nome: %s\nSenha: %s\n", teste.nome,teste.senha);
 			system("pause");
 
 			break;
@@ -505,7 +583,7 @@ int alterardados(tipoAdm adm){
 			strcpy(admLog.senha, adm.senha);   //copio pra GLOBAL
 			rewind(admdata);
 			fread(&teste, sizeof(tipoAdm), 1, admdata);
-			printf("\n%s\n%s\n", teste.nome, teste.senha);
+			printf("\nNome%s\nNova Senha%s\n", teste.nome, teste.senha);
 			system("pause");
 
 			break;
