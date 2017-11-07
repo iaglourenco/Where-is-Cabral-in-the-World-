@@ -13,14 +13,35 @@ struct tipoPistas{
 	char pista[100];
 };
 
+struct tipoSuspeitos{
+
+	char nome[50];
+	char genero[10];
+	char hobby[50];
+	char cabelo[10];
+	char pele[10];
+
+};
+
+struct tipoCidade{
+
+	char nome[50];
+	bool cidadefinal;	//Se eh a cidade onde o ladrao esta
+
+
+};
+
 struct tipoCasos {
 
 	int id;
 	char descricao[150];
 	int dificuldade;
 	tipoPistas pistas[20];
+	tipoCidade cidades[3];
+	tipoSuspeitos ladrao;
 
 };
+
 
 struct tipoSavepoint{
 	int casoid;
@@ -95,7 +116,7 @@ void main() {
 
 	system("color 0A");
 	// Abertura da referencia dos arquivos
-	FILE *casos = fopen("casos.apc", "wb+");
+	FILE *casos = fopen("casos.apc", "rb+");
 	if (!casos){
 		printf("ERRO: Arquivo de casos nao encontrado!!\n");
 		system("pause");
@@ -209,33 +230,7 @@ void main() {
 			printf("\n\n>>>");
 			fflush(stdin);
 			gets_s(jogador.nome);
-			resCode = verificalogin(jogador); // 1 se há save point, 0 se nao
-
-			if (resCode == 1){
-				//há savepoint
-				// inicio o jogo de onde ele parou
-				caso.id = 123;// jogador.savepoint.casoid; // pego o caso que ele parou // TODO: pegar todos os dados necessarios( tempo restante,pontuacao...)
-				
-				if (loginjogador(jogador)){
-				
-					jogo(jogador, caso); // inicio o jogo
-				
-				}
-				else{
-					system("cls");
-					slowprint("Senha incorreta!", DELAY);
-					printf("\n");
-				}
-			}
-			if (resCode == 0){ 
-				// nao ha savepoint
-				//TODO: Sorteio um caso pelo id 
-				//caso.id = rand();  //pegar todos os dados necessarios
-				caso.id = 123;
-				jogo(jogador, caso);
-
-			}
-
+			
 
 			break;
 
@@ -284,9 +279,6 @@ int verificalogin(tipoJogador jogador){
 
 	return 0;
 }
-
-
-
 
 
 
@@ -426,10 +418,12 @@ int admconfig(tipoAdm adm) {
 
 int addcaso(){
 
-	FILE *arquivoCasos = fopen("casos.apc", "ab+");
+	FILE *arquivoCasos = fopen("casos.apc", "rb+");
 	if (!arquivoCasos){
 		return 0;
 	}
+	int qtd;
+	fread(&qtd, sizeof(int), 1, arquivoCasos);
 
 	tipoCasos casos;
 	int contapistas = 0,i=0;
@@ -472,10 +466,13 @@ int addcaso(){
 		slowprint("Pista atual = ", DELAY);
 		printf("%i\n\n", contapistas + 1);
 
-		slowprint("Digite a pista:  [PRESSIONE ENTER AO TERMINAR][ESCREVA SAIR PARA FINALIZAR A INSERCAO DE PISTAS]", DELAY);
+		slowprint("Digite a pista:  [PRESSIONE ENTER AO TERMINAR]", DELAY);
+		printf("\n");
+		slowprint("[ESCREVA SAIR PARA FINALIZAR A INSERCAO DE PISTAS]", DELAY);
 		printf("\n>>>");
 		gets_s(pista);
 		_strupr(pista);
+		
 		if (strcmp(pista, "SAIR") == 0){
 			break;
 		}
@@ -485,7 +482,17 @@ int addcaso(){
 
 		}
 		contapistas++;
+		if (contapistas==20){
+			slowprint("NUMERO MAXIMO DE PISTAS ATINGIDO!", DELAY);
+			printf("\n");
+			break;
+		}
+		
+		
 	}
+
+	
+
 	system("cls");
 	slowprint("Confirme os dados", DELAY);
 	printf("\n\nDificuldade = %i\n\n", casos.dificuldade);
@@ -503,7 +510,8 @@ int addcaso(){
 	scanf("%c", &cf);
 
 	if (cf == 's' || cf == 'S'){
-
+		
+		casos.id = qtd++;
 		if (!fwrite(&casos, sizeof(tipoCasos), 1, arquivoCasos)){
 			return 0;	//erro ao cadastrar
 		}
