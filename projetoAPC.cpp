@@ -8,6 +8,7 @@
 #define DELAY 15 // duracao do delay do slowprint
 
 
+
 struct tipoPistas{
 
 	char pista[100];
@@ -16,17 +17,18 @@ struct tipoPistas{
 struct tipoSuspeitos{
 
 	char nome[50];
-	char genero[10];
-	char hobby[50];
-	char cabelo[10];
-	char pele[10];
+	int sexo;   //1 masc, 2 fem
+	char cabelo[50];
+	char gosto[100];// joias,carros,pinturas....etc
+	char caracteristica[100];// falta de 1 dedo, marcas na pele, cicatrizes, mania...etc
 
 };
 
 struct tipoCidade{
 
 	char nome[50];
-	bool cidadefinal;	//Se eh a cidade onde o ladrao esta
+	char historia[1000];
+	bool cidadefinal=false;	//Se eh a cidade onde o ladrao esta
 
 
 };
@@ -37,9 +39,10 @@ struct tipoCasos {
 	char descricao[150];
 	int dificuldade;
 	tipoPistas pistas[20];
-	tipoCidade cidades[3];
+	tipoCidade cidades[20];
 	tipoSuspeitos ladrao;
-
+	int qtdcidades;
+	int qtdPistas;
 };
 
 
@@ -98,7 +101,7 @@ int alterardados(tipoAdm adm); //retorna 1 se a alteracao foi feita, 0 se nao
 
 //jogador
 
-int jogo(tipoJogador jogador,tipoCasos casos); //retorna 1 se ganhou, 0 se perdeu
+int jogo(tipoJogador jogador, tipoCasos casos); //retorna 1 se ganhou, 0 se perdeu
 
 int verificalogin(tipoJogador jogador); // verifica se o jogador tem um jogo salvo, retorna 1 se SIM, 0 se NAO
 
@@ -129,6 +132,47 @@ void main() {
 		system("pause");
 		exit(0); // fechar programa
 	}
+	FILE *suspeitos = fopen("suspeitos.apc", "wb+");
+	if (!suspeitos){
+		printf("ERRO: Arquivo de suspeitos nao encontrado!!\n");
+		system("pause");
+		exit(0);
+	}
+	tipoSuspeitos susp[10];
+	int asd=0;
+
+	while (asd < 10){
+
+		printf("nome:>>> ");
+		fflush(stdin);
+		gets_s(susp[asd].nome);
+		printf("\nsexo: 1 masc 2 fem>>>");
+		fflush(stdin);
+		scanf("%i", susp[asd].sexo);
+		printf("\nGostos ->  gosto1,gosto2,...,gostoN >>>");
+		fflush(stdin);
+		gets_s(susp[asd].gosto);
+		printf("\nCaracteristicas -> ide o de cima>>>");
+		gets_s(susp[asd].caracteristica);
+		printf("\ncabelo string>>>");
+		gets_s(susp[asd].cabelo);
+
+
+		printf("\n\n\nConfira!!");
+		system("pause");
+
+		fwrite(&susp, sizeof(tipoSuspeitos), 1, suspeitos);
+
+		printf("\n\n\n\n\nDone\n");
+		system("pause");
+	}
+	
+
+
+
+
+
+	
 
 
 
@@ -221,7 +265,7 @@ void main() {
 
 			}
 
-		break;
+			break;
 
 #pragma endregion ADM
 		case 2://JOGADOR
@@ -230,7 +274,7 @@ void main() {
 			printf("\n\n>>>");
 			fflush(stdin);
 			gets_s(jogador.nome);
-			
+
 
 			break;
 
@@ -313,7 +357,7 @@ int loginadm(tipoAdm adm) {			//retorna 1 se o login foi efetuado, 0 se nao.
 
 
 	fread(&verifica, sizeof(tipoAdm), 1, admdata); // leio o primeiro dado do "users.apc" pois o adm sempre eh o primeiro
-	
+
 	if (strcmp(adm.nome, verifica.nome) == 0){
 		// Nomes conferem, prossiga para a senha
 		if (strcmp(adm.senha, verifica.senha) == 0){
@@ -334,7 +378,7 @@ int loginadm(tipoAdm adm) {			//retorna 1 se o login foi efetuado, 0 se nao.
 	}
 
 
-	
+
 
 
 
@@ -344,7 +388,7 @@ int loginadm(tipoAdm adm) {			//retorna 1 se o login foi efetuado, 0 se nao.
 int admconfig(tipoAdm adm) {
 	//menu de configuracao do adm
 
-	int op,resCode=-2;
+	int op, resCode = -2;
 	do{
 		system("cls");
 		slowprint("Bem vindo, ", DELAY);
@@ -384,13 +428,13 @@ int admconfig(tipoAdm adm) {
 				system("cls");
 				slowprint("Cadastro cancelado!", DELAY);
 				printf("\n");
-				slowprint("Pressione qualquer tecla para continuar...",DELAY);
+				slowprint("Pressione qualquer tecla para continuar...", DELAY);
 				system("pause>nul");
 				printf("\n");
 				op = -1;
-	
+
 			}
-			
+
 
 			break;
 
@@ -422,13 +466,20 @@ int addcaso(){
 	if (!arquivoCasos){
 		return 0;
 	}
+
+	FILE *arquivoSuspeitos = fopen("suspeitos.apc", "rb+");
+	if (!arquivoSuspeitos){
+		return 0;
+	}
+
 	int qtd;
 	fread(&qtd, sizeof(int), 1, arquivoCasos);
 
 	tipoCasos casos;
-	int contapistas = 0,i=0;
-	char pista[100], cf;
-	
+	tipoSuspeitos suspeitos[10];
+	int contapistas = 0, i = 0,contacidades=0,op;
+	char cidade[100],pista[100], cf;
+
 	system("cls");
 	slowprint("Cadastro de Casos!", DELAY);
 	printf("\n\n");
@@ -472,8 +523,9 @@ int addcaso(){
 		printf("\n>>>");
 		gets_s(pista);
 		_strupr(pista);
-		
+
 		if (strcmp(pista, "SAIR") == 0){
+			casos.qtdPistas = contapistas;
 			break;
 		}
 		else{
@@ -482,16 +534,91 @@ int addcaso(){
 
 		}
 		contapistas++;
-		if (contapistas==20){
+		if (contapistas == 20){
 			slowprint("NUMERO MAXIMO DE PISTAS ATINGIDO!", DELAY);
 			printf("\n");
+			casos.qtdPistas = contapistas;
 			break;
 		}
-		
-		
-	}
 
+
+	}
+	system("cls");
+	slowprint("Insercao de cidades - Pressione ||ENTER|| ao final de cada uma, digite ||SAIR|| para finalizar",DELAY);
+	printf("\n\n");
+	slowprint("MAX 30 cidades!", DELAY);
+	printf("\n\n");
+
+	while (contacidades < 20){
+		slowprint("Cidade de No - ", DELAY);
+		printf("%i\n\n", contacidades + 1);
+
+		slowprint("Digite o nome da cidade: [PRESSIONE ENTER AO TERMINAR]", DELAY);
+		printf("\n>");
+		slowprint("[ESCREVA SAIR PARA FINALIZAR A INSERCAO DE CIDADES]", DELAY);
+		printf("\n>>>");
+		fflush(stdin);
+		gets_s(cidade);
+		_strupr(cidade);
+
+		if (strcmp(pista, "SAIR") == 0){
+			casos.qtdcidades=contacidades;
+			break;
+		}
+		else{
+
+			strcpy(casos.cidades[contacidades].nome, pista);
+			system("cls");
+			slowprint("Digite a historia dessa cidade:", DELAY);
+			printf("\n\n>>>");
+			fflush(stdin);
+			gets_s(casos.cidades[contapistas].historia);
+			_strupr(casos.cidades[contapistas].historia);
+			slowprint("Esta eh a cidade final do ladrao?, ou seja, a cidade em que o ladrao parou? (S/N)", DELAY);
+			printf("\n");
+			fflush(stdin);
+			scanf("%c", &cf);
+
+			if (cf == 's' || cf == 'S'){
+
+				casos.cidades[contacidades].cidadefinal = true;
+			}
+			else{
+				cf = NULL;
+			}
+		}
+		contacidades++;
+		if (contacidades == 20){
+			slowprint("NUMERO MAXIMO DE CIDADES ATINGIDO!", DELAY);
+			printf("\n");
+			casos.qtdcidades = contacidades;
+			break;
+		}
+	}
+	do{
+
+		fread(&suspeitos, sizeof(tipoSuspeitos), 1, arquivoSuspeitos);
+
+		system("cls");
+		slowprint("Selecione o ladrao:", DELAY);
+		printf("\n\n");
+		printf("1 - %s\n", suspeitos[0].nome);
+		printf("2 - %s\n", suspeitos[1].nome);
+		printf("3 - %s\n", suspeitos[2].nome);
+		printf("4 - %s\n", suspeitos[3].nome);
+		printf("5 - %s\n", suspeitos[4].nome);
+		printf("6 - %s\n", suspeitos[5].nome);
+		printf("7 - %s\n", suspeitos[6].nome);
+		printf("8 - %s\n", suspeitos[7].nome);
+		printf("9 - %s\n", suspeitos[8].nome);
+		printf("10 - %s\n", suspeitos[9].nome);
+		scanf("%i", &op);
 	
+			
+	
+	} while (op  < 1 || op > 10);
+	
+
 
 	system("cls");
 	slowprint("Confirme os dados", DELAY);
@@ -503,6 +630,27 @@ int addcaso(){
 		printf("Pista No. %i - %s \n", i + 1, casos.pistas[i].pista);
 
 	}
+	for (i = 0; i < contacidades; i++){
+
+		if (casos.cidades[i].cidadefinal){
+
+			printf("[CIDADE FINAL] - Cidade No. %i - %s \n", i + 1, casos.cidades[i].nome);
+		}
+		printf("Cidade No. %i - %s \n", i + 1, casos.cidades[i].nome);
+
+	}
+
+	printf("Dossie do Ladrao:\n");
+	printf("Nome: %s\n", suspeitos[op].nome);
+	if (suspeitos[op].sexo == 1){
+		printf("Sexo: Masculino");
+	}
+	else{
+		printf("Sexo: Feminino");
+	}
+	printf("Gosto por : %s\n", suspeitos[op].gosto);
+	printf("Cabelo : %s", suspeitos[op].cabelo);
+	printf("Caracteristicas : %s", suspeitos[op].caracteristica);
 
 	printf("\n");
 	slowprint("Cadastrar?  (S/N)", DELAY);
@@ -510,7 +658,7 @@ int addcaso(){
 	scanf("%c", &cf);
 
 	if (cf == 's' || cf == 'S'){
-		
+
 		casos.id = qtd++;
 		if (!fwrite(&casos, sizeof(tipoCasos), 1, arquivoCasos)){
 			return 0;	//erro ao cadastrar
@@ -566,11 +714,11 @@ int alterardados(tipoAdm adm){
 
 			rewind(admdata);
 			fwrite(&adm, sizeof(tipoAdm), 1, admdata); // reescrevo mudando o nome
-				
+
 			strcpy(admLog.nome, adm.nome);   //copio pra GLOBAL
 			rewind(admdata);
 			fread(&teste, sizeof(tipoAdm), 1, admdata);
-			printf("\nNovo Nome: %s\nSenha: %s\n", teste.nome,teste.senha);
+			printf("\nNovo Nome: %s\nSenha: %s\n", teste.nome, teste.senha);
 			system("pause");
 
 			break;
