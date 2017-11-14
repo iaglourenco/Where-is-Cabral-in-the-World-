@@ -35,7 +35,7 @@ struct tipoCidade{
 
 struct tipoCasos {
 
-	int id;
+	int id=0;
 	char descricao[150];
 	int dificuldade;
 	tipoPistas pistas[20];
@@ -58,6 +58,7 @@ struct tipoJogador {
 	char nome[50];
 	int nivel;
 	int pontos;
+	char senha[10];
 	tipoSavepoint savepoint;
 
 };
@@ -132,51 +133,16 @@ void main() {
 		system("pause");
 		exit(0); // fechar programa
 	}
-	FILE *suspeitos = fopen("suspeitos.apc", "wb+");
+	FILE *suspeitos = fopen("suspeitos.apc", "rb+");
 	if (!suspeitos){
 		printf("ERRO: Arquivo de suspeitos nao encontrado!!\n");
 		system("pause");
 		exit(0);
 	}
-	tipoSuspeitos susp[10];
-	int asd=0;
-
-	while (asd < 10){
-
-		printf("nome:>>> ");
-		fflush(stdin);
-		gets_s(susp[asd].nome);
-		printf("\nsexo: 1 masc 2 fem>>>");
-		fflush(stdin);
-		scanf("%i", susp[asd].sexo);
-		printf("\nGostos ->  gosto1,gosto2,...,gostoN >>>");
-		fflush(stdin);
-		gets_s(susp[asd].gosto);
-		printf("\nCaracteristicas -> ide o de cima>>>");
-		gets_s(susp[asd].caracteristica);
-		printf("\ncabelo string>>>");
-		gets_s(susp[asd].cabelo);
 
 
-		printf("\n\n\nConfira!!");
-		system("pause");
-
-		fwrite(&susp, sizeof(tipoSuspeitos), 1, suspeitos);
-
-		printf("\n\n\n\n\nDone\n");
-		system("pause");
-	}
-	
-
-
-
-
-
-	
-
-
-
-	fclose(usuarios); // Fecho os dois , essa abertura foi so pra verificacao
+	fclose(suspeitos);
+	fclose(usuarios); // Fecho os tres , essa abertura foi so pra verificacao
 	fclose(casos);
 
 	tipoJogador jogador;
@@ -184,11 +150,12 @@ void main() {
 	tipoCasos caso;
 
 	int op = -21, tentativas, resCode = -2;
+	char cf;
 	do {
 
 		system("cls");
 		printf("\n\t\t\t\t");
-		slowprint("Onde esta Sergio Cabral no Brasil?", DELAY);
+		slowprint("Quem roubou o Brasil?", DELAY);
 		printf("\n\n");
 		slowprint("Bem-vindo!!\n\nQuem eh voce?", DELAY);
 		printf("\n\n");
@@ -267,18 +234,50 @@ void main() {
 
 			break;
 
-#pragma endregion ADM
+#pragma endregion 
 		case 2://JOGADOR
 			resCode = -2;//reset dos erros
 			slowprint("Detetive no teclado, digite seu usuario...", DELAY);
 			printf("\n\n>>>");
 			fflush(stdin);
 			gets_s(jogador.nome);
+			slowprint("Digite sua senha, se nao tiver uma senha cadastrada pressione ENTER... ", DELAY);
+			printf("\n");
+			fflush(stdin);
+			if (gets_s(jogador.senha)==NULL){
+				//inicio o jogo
+				//escolho o caso aleatoriamente
+				do{
+					resCode = jogo(jogador, caso);
+					if (resCode == 1){
+						//ganhou
 
+						slowprint("Parabens!!, jogar de novo? (S\N)", DELAY);
+						printf("\n>>>");
+
+					}
+					else if (resCode == -1){
+						//erro
+						break;
+					}
+					else{
+						//perdeu
+						slowprint("Que pena, tentar novamente com outro caso? (S\N)", DELAY);
+						printf("\n>>>");
+					}
+
+
+				} while (scanf("%c", &cf) != 's' || scanf("%c", &cf) != 'S');
+			
+			}
+			else{
+				//login 
+				loginjogador(jogador);
+			}
 
 			break;
 
-
+#pragma region SAIR
 		case 0://SAIR
 			system("cls");
 			slowprint("Obrigado por jogar!!", DELAY);
@@ -290,7 +289,7 @@ void main() {
 			slowprint("Pressione qualquer tecla para sair...", DELAY);
 			system("pause>nul");
 			break;
-
+#pragma endregion
 
 		default:
 			slowprint("Opcao invalida", DELAY);
@@ -310,6 +309,25 @@ void main() {
 //jogador
 int jogo(tipoJogador jogador, tipoCasos caso){
 
+	FILE *arqcaso = fopen("casos.apc", "rb");
+	if (!arqcaso){
+		printf("ERRO: Arquivo de casos nao encontrado!!");
+		return -1;
+	}
+
+	if (caso.id == 0){
+		//sorteia um novo caso
+
+		caso.id = rand() % 5;//sorteia um caso de 1 a 5
+	}
+	
+
+	
+
+
+
+
+
 	return 0;
 }
 
@@ -317,11 +335,6 @@ int loginjogador(tipoJogador jogador){
 
 	return 0;
 
-}
-
-int verificalogin(tipoJogador jogador){
-
-	return 0;
 }
 
 
