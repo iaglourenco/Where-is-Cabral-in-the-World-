@@ -5,20 +5,20 @@
 #include <string.h>
 #include <Windows.h>
 
-#define DELAY 15 // duracao do delay do slowprint
 
 
 
-struct tipoPistas{
+
+struct tipoPistas{ // definicao da pista
 
 	char pista[100];
 };
 
 struct tipoSuspeitos{
 
-	char nome[50];
+	char nome[50];//string
 	int sexo;   //1 masc, 2 fem
-	char cabelo[50];
+	char cabelo[50]; //string
 	char gosto[100];// joias,carros,pinturas....etc
 	char caracteristica[100];// falta de 1 dedo, marcas na pele, cicatrizes, mania...etc
 
@@ -28,14 +28,14 @@ struct tipoCidade{
 
 	char nome[50];
 	char historia[1000];
-	bool cidadefinal=false;	//Se eh a cidade onde o ladrao esta
+	bool cidadefinal = false;	//Se eh a cidade onde o ladrao esta
 
 
 };
 
 struct tipoCasos {
 
-	int id=0;
+	int id = 0;
 	char descricao[1000];
 	int dificuldade;
 	tipoPistas pistas[20];
@@ -47,8 +47,9 @@ struct tipoCasos {
 
 
 struct tipoSavepoint{
-	int casoid;
-	int tempo;
+	int casoid = 0;
+	int cidadeatual;
+	int pistatual;
 	int pontuacao;
 
 };
@@ -56,8 +57,8 @@ struct tipoSavepoint{
 struct tipoJogador {
 
 	char nome[50];
-	int nivel=0;
-	int pontos=0;
+	int nivel = 1;
+	int pontos;
 	char senha[10];
 	tipoSavepoint savepoint;
 
@@ -69,6 +70,7 @@ struct tipoAdm {
 	char senha[10];
 };
 
+int DELAY = 15; //GLOBAL do delay do print
 tipoAdm admLog; // GLOBAL do adm logado
 tipoJogador jogadorLog; //GLOBAL do jogador logado
 
@@ -82,12 +84,15 @@ void slowprint(char s[], int delay){
 
 		printf("%c", s[i]);
 		Sleep(delay);
+		//if (i % 94 == 0 && i != 0){
+		//	printf("\n");
+		//	}
 
 	}
 
 }
 
-
+void config();
 
 //adm
 int loginadm(tipoAdm adm);  //retorna 1 se o login foi efetuado, 0 se nao. 
@@ -105,13 +110,14 @@ int alterardados(tipoAdm adm); //retorna 1 se a alteracao foi feita, 0 se nao
 int jogo(tipoJogador jogador, tipoCasos casos); //retorna 1 se ganhou, 0 se perdeu
 int viajar(tipoCasos caso, int cidadeatual);
 int loginjogador(tipoJogador jogador); // retorna 1 se login OK, 0 se nao
-int investigar(tipoCasos caso, int pistatual, bool cidadefinal);
-int viajar(tipoCasos caso, int cidadeatual);
+int investigar(tipoCasos caso, int pistatual, bool cidadefinal); // retorna a qtd de pistas restantes
+int viajar(tipoCasos caso, int cidadeatual); //retorna a cidade
 void salvar(tipoJogador jogador, tipoCasos caso);
 void dossies();
+int ordemDePrisao(tipoCasos caso); // retorna a quantidade de acertos, se =5 YOU WIN, se nao Dinheiro-=acertos
 
-int rankingtop(tipoJogador jogador);
-int rankingeral(tipoJogador jogador);
+int rankingtop(); //retorna 0
+int rankingeral();// retorna 0
 
 
 
@@ -140,11 +146,19 @@ void main() {
 		exit(0);
 	}
 
+	/*
+	tipoAdm nvi;
+	fflush(stdin);
+	gets(nvi.nome);
+	_strupr(nvi.nome);
+	fflush(stdin);
+	gets(nvi.senha);
+	fwrite(&nvi, sizeof(tipoAdm), 1, usuarios);
+	*/
 
 
 
 
-	
 	fclose(suspeitos);
 	fclose(usuarios); // Fecho os tres , essa abertura foi so pra verificacao
 	fclose(casos);
@@ -155,16 +169,22 @@ void main() {
 
 	int op = -21, tentativas, resCode = -2;
 	char cf;
+
 	do {
 		system("cls");
 		printf("\n\t\t\t\t");
-		slowprint("Quem roubou o Brasil?", DELAY);
+		slowprint(".:||Where is Sergio Cabral Crew in BRAZIL?||:.", DELAY);
 		printf("\n\n");
+		rankingtop();
 		slowprint("Bem-vindo!!\n\nQuem eh voce?", DELAY);
 		printf("\n\n");
 		slowprint("1 - Procurador (ADM)", DELAY);
 		printf("\n");
 		slowprint("2 - Detetive (JOGADOR)", DELAY);
+		printf("\n");
+		slowprint("3 - Configuracoes", DELAY);
+		printf("\n");
+		slowprint("4 - Ranking", DELAY);
 		printf("\n");
 		slowprint("0 - Sair", DELAY);
 		printf("\n>>> ");
@@ -177,7 +197,7 @@ void main() {
 #pragma region ADM
 		case 1://ADM
 			tentativas = 3;
- 			while (tentativas > 0) {
+			while (tentativas > 0) {
 				resCode = -2;
 				slowprint("Procurador no teclado, digite seu nome...", DELAY);
 				printf("\n\n>>>");
@@ -248,16 +268,25 @@ void main() {
 			fflush(stdin);
 			gets_s(jogador.nome);
 			slowprint("Digite sua senha, se nao tiver uma senha cadastrada pressione ENTER... ", DELAY);
-			printf("\n");
+			printf("\n>>>");
 			fflush(stdin);
-			if (gets_s(jogador.senha)==NULL){
+			gets_s(jogador.senha);
+			if (strcmp(jogador.senha, "\0") == 0){//ENTER
 				//inicio o jogo
+				jogador.savepoint.casoid = 0;
+				jogador.savepoint.pontuacao = 1000;
+				jogador.pontos = 1000;
+				jogadorLog = jogador;
 				do{
+					//loop do jogo 
 					resCode = jogo(jogador, caso);
-					
+					fflush(stdin);
 					if (resCode == 1){
 						//ganhou
-						jogador.nivel++;
+						if (jogador.nivel < 3 || jogadorLog.nivel<3){
+							jogador.nivel++;
+							jogadorLog.nivel++;
+						}
 						slowprint("Parabens!!, jogar de novo? (S-N)", DELAY);
 						printf("\n>>>");
 
@@ -266,22 +295,27 @@ void main() {
 						//erro
 						break;
 					}
-					else{
+					else if (resCode == -99){
+						break;
+					}
+					else if (jogador.savepoint.casoid == 0 || resCode == -123){
 						//perdeu
-						jogador.nivel--;
-						slowprint("Que pena, tentar novamente com outro caso? (S-N)", DELAY);
+
+						slowprint("Que pena, jogar novamente? (S-N)", DELAY);
 						printf("\n>>>");
+
 					}
 
+					fflush(stdin);
+					scanf("%c", &cf);
+				} while (cf == 's' || cf == 'S');
 
-				} while (scanf("%c", &cf) != 's' || scanf("%c", &cf) != 'S');
-			
 			}
 			else{
 				//login 					
-				
+
 				resCode = loginjogador(jogador);
-				
+
 				switch (resCode){
 
 				case 0:
@@ -294,13 +328,21 @@ void main() {
 					scanf("%c", &cf);
 
 					if (cf == 's' || cf == 'S'){
-
+						jogador.savepoint.casoid = 0;
+						jogador.savepoint.pontuacao = 1000;
+						jogador.pontos = 1000;
+						jogadorLog = jogador;
+						fflush(stdin);
 						//inicio o jogo
 						do{
 							resCode = jogo(jogador, caso);
 							if (resCode == 1){
 								//ganhou
 
+								if (jogador.nivel < 3 || jogadorLog.nivel<3){
+									jogador.nivel++;
+									jogadorLog.nivel++;
+								}
 								slowprint("Parabens!!, jogar de novo? (S-N)", DELAY);
 								printf("\n>>>");
 							}
@@ -311,14 +353,15 @@ void main() {
 							else if (resCode = -99){
 								break;
 							}
-							else{
+							else if (jogador.savepoint.casoid == 0 || resCode == -123){
 								//perdeu
-								slowprint("Que pena, tentar novamente com outro caso? (S-N)", DELAY);
+								slowprint("Que pena, jogar novamente? (S-N)", DELAY);
 								printf("\n>>>");
 							}
 
 							fflush(stdin);
-						} while (scanf("%c", &cf) != 's' || scanf("%c", &cf) != 'S');
+							scanf("%c", &cf);
+						} while (cf == 's' || cf == 'S');
 
 
 					}
@@ -326,15 +369,19 @@ void main() {
 					break;
 
 				case 1:
-					// logado
-					
-					jogadorLog = jogador; //att a global
+					// jogador logado
+					jogadorLog.pontos = jogadorLog.savepoint.pontuacao;
+					jogador = jogadorLog;
 					//inicio o jogo
 					do{
 						resCode = jogo(jogador, caso);
 						if (resCode == 1){
 							//ganhou
-							slowprint("Parabens!!, jogar de novo? (S\N)", DELAY);
+							if (jogador.nivel < 3 || jogadorLog.nivel<3){
+								jogador.nivel++;
+								jogadorLog.nivel++;
+							}
+							slowprint("Parabens!!, jogar de novo? (S-N)", DELAY);
 							printf("\n>>>");
 						}
 						else if (resCode == -1){
@@ -344,14 +391,15 @@ void main() {
 						else if (resCode = -99){
 							break;
 						}
-						else{
+						else if (jogador.savepoint.casoid == 0 || resCode == -123){
 							//perdeu
-							slowprint("Que pena, tentar novamente com outro caso? (S\N)", DELAY);
+							slowprint("Que pena, jogar novamente? (S-N)", DELAY);
 							printf("\n>>>");
 						}
 
 						fflush(stdin);
-					} while (scanf("%c", &cf) != 's' || scanf("%c", &cf) != 'S');
+						scanf("%c", &cf);
+					} while (cf == 's' || cf == 'S');
 
 					break;
 
@@ -362,11 +410,27 @@ void main() {
 					break;
 
 				}
-							
+
 			}
 
 			break;
 #pragma endregion 
+
+#pragma region CONFIG
+
+		case 3:
+			system("cls"); // configuracoes do jogo
+			config();
+
+
+
+
+			break;
+		case 4:
+			rankingeral();		//ranking
+			break;
+
+#pragma endregion
 
 #pragma region SAIR
 		case 0://SAIR
@@ -399,55 +463,84 @@ int jogo(tipoJogador jogador, tipoCasos caso){
 		printf("ERRO: Arquivo de casos nao encontrado!!");
 		return -1;
 	}
-
-	tipoCasos readedCase,loadedCase;
-	char cf;
-	int option,cidadeatual=0,pistatual=0,resCode=0;
-#pragma region CONFIGURACAO INICIAL
-
+	FILE *tuto = fopen("tutorial.txt", "r");
 	
+
+	tipoCasos readedCase, loadedCase;
+	char cf, tutorial[1000];
+	int option, cidadeatual = 0, pistatual = 0, resCode = 0, i, strikes = 0, die = 0;
 	rewind(arqcaso);
 
-	do{
-		fread( &readedCase, sizeof( tipoCasos),1,arqcaso);
-
-		if (readedCase.id == caso.id){
-			// caso encontrado
-			//inicia jogo
-			caso = readedCase;
-			break;
-		}
-		else{
-			// le o proximo
-			fread(&readedCase, sizeof(tipoCasos), 1, arqcaso);
-		}
-
-	} while (!feof(arqcaso));
+	i = 0;
+	while (!feof(tuto)){
+		tutorial[i] = fgetc(tuto);
+		i++;
+	}
+	tutorial[i] = '\0';
 
 	system("cls");
-
 	slowprint("Bem vindo ", DELAY);
 	printf("%s\n\n", jogador.nome);
-	if (jogador.savepoint.casoid == 0){
-		slowprint("Deseja ver o tutorial?",DELAY);
+	if (jogador.savepoint.casoid == 0){// se nao ha jogo salvo ofereco o tutorial
+		slowprint("Deseja ver o tutorial?(S-N)", DELAY);
 		printf("\n>>>");
+		fflush(stdin);
 		scanf("%c", &cf);
 		if (cf == 's' || cf == 'S'){
-			system("PRINT tutorial.txt");
+			if (!tuto){
+				printf("Erro ao exibir tutorial!\n");
+			}
+			slowprint(tutorial, DELAY);
 			printf("\n");
 			system("pause");
 		}
 	}
 
-#pragma endregion
-	if (caso.id == 0){
+
+
+
+
+	if (jogador.savepoint.casoid == 0 || strlen(jogadorLog.senha) == 0){
 		//sorteia um novo caso
-		caso.id = 1;
-		//caso.id = rand() % 5;//sorteia um caso de 1 a 5
+		//sem jogo salvo
+		do{
+
+			caso.id = 1 + rand() % (1 + rand() % (1 + rand() % 100));//rand nao funciona direito
+			// por ter uma seed os casos sorteados seguem um padrao
+			rewind(arqcaso);
+			while (caso.id != readedCase.id && feof(arqcaso) == false){
+				fread(&readedCase, sizeof(tipoCasos), 1, arqcaso);
+			}
+
+		} while (readedCase.dificuldade != jogador.nivel);
+
+		caso = readedCase;
+	}
+	else{
+		//com jogo salvo
+		//procura o caso
+
+		while (!feof(arqcaso)){
+
+			fread(&readedCase, sizeof(tipoCasos), 1, arqcaso);
+
+			if (readedCase.id == jogador.savepoint.casoid){
+				jogadorLog.pontos = jogador.savepoint.pontuacao; //load das informacoes
+				cidadeatual = jogador.savepoint.cidadeatual;
+				pistatual = jogador.savepoint.pistatual;
+				caso = readedCase;
+				break;
+			}
+		}
+
 	}
 
-	
+
+
 	system("cls");
+	slowprint("Descricao do caso: ", DELAY);
+	printf("\n");
+	slowprint("CAPITAO FERNANDES - ", DELAY);
 	slowprint(caso.descricao, DELAY);
 	printf("\n");
 	system("pause");
@@ -456,20 +549,24 @@ int jogo(tipoJogador jogador, tipoCasos caso){
 
 		system("cls");
 		slowprint("Cidade Atual - ", DELAY);
-		printf("%s\n\n\t",caso.cidades[cidadeatual].nome);
-		slowprint(caso.cidades[cidadeatual].historia,DELAY);
+		printf("%s\n\n\t", caso.cidades[cidadeatual].nome);
+		slowprint(caso.cidades[cidadeatual].historia, DELAY);
 		printf("\n");
-		Sleep(3000);
+		printf("\n\n\n\n\n\t\t\t\t\t\tDinheiro:R$ %i,00", jogadorLog.pontos);
 
 		slowprint("\n\n\t1 - Viajar", DELAY);
 		printf("\n\t");
-		slowprint("2 - Investigar", DELAY);
+		slowprint("2 - Interrogar", DELAY);
 		printf("\n\t");
 		slowprint("3 - Salvar jogo", DELAY);
 		printf("\n\t");
 		slowprint("4 - Criar ordem de prisao", DELAY);
 		printf("\n\t");
 		slowprint("5 - Dossies", DELAY);
+		printf("\n\t");
+		slowprint("6 - Descricao do caso", DELAY);
+		printf("\n\t");
+		slowprint("7 - Como jogar", DELAY);
 		printf("\n\t");
 		slowprint("0 - Sair do jogo", DELAY);
 		printf("\n\nOpcao>>>");
@@ -479,32 +576,131 @@ int jogo(tipoJogador jogador, tipoCasos caso){
 		switch (option){
 
 		case 1://viajar
-			cidadeatual = viajar(caso,cidadeatual);
+			cidadeatual = viajar(caso, cidadeatual);
 			break;
 		case 2://investigar
-		
+
+
+			if (caso.cidades[cidadeatual].cidadefinal == true){
+				die++;//se inverstigar 3 vezes na cidade em que o ladrao esta vc eh assasinado :)
+				if (die > 3){
+					system("cls");
+					slowprint("CAPITAO FERNANDES - EH COM MUITO PESAR QUE INFORMO QUE O DETETIVE ", DELAY);
+					slowprint(jogadorLog.nome, DELAY);
+					printf("\n");
+					slowprint("FOI ENCONTRADO MORTO NA CIDADE DE ", DELAY);
+					slowprint(caso.cidades[cidadeatual].nome, DELAY);
+					printf("\n");
+					slowprint("A PERICIA DISSE QUE O ASSASINO TINHA ENVOLVIMENTOS COM O SUSPEITO QUE O DETETIVE ESTAVA INVESTIGANDO ", DELAY);
+					printf("\n");
+					system("pause");
+					system("cls");
+					slowprint("VOCE FOI MORTO, RESSUCITE E TENTE NA PROXIMA", DELAY);
+					Sleep(1000);
+					printf("\n");
+					system("pause");
+					return -123;
+
+				}
+
+			}
+			if (jogadorLog.pontos <= 0){//vejo se tem dinheiro ainda
+				break;
+			}
 			pistatual = investigar(caso, pistatual, caso.cidades[cidadeatual].cidadefinal);
 			break;
 		case 3://Salvar jogo
+			jogadorLog.savepoint.cidadeatual = cidadeatual;
+			jogadorLog.savepoint.pistatual = pistatual;// salvo as informacoes necessarias
+
 			salvar(jogador, caso);
 			break;
 		case 4://Ordem de prisao
-			
 
+			resCode = ordemDePrisao(caso);
+			jogadorLog.pontos -= resCode;
+			system("cls");
+			slowprint("Ordem de prisao enviada! ", DELAY);
+			printf("\n");
+			slowprint("CAPITAO FERNANDES - POLICIAIS A PROCURA!", DELAY);
+			Sleep(5000);
+			if (resCode == 5){
+				//ganhou
+
+				system("cls");
+				printf("\n");
+				slowprint("CAPITAO FERNANDES - O LADRAO FOI PEGO!!", DELAY);
+				Sleep(1000);
+				printf("\n");
+				return 1;
+			}
+			else{
+				strikes++;//se errar 3 vezes, vc eh demitido por prender um inocente :)
+				//errar eh humano, errar 3 vezes eh burrice :)
+
+				if (strikes > 3){
+					printf("\n");
+					slowprint("CAPITAO FERNANDES - CAPTURAMOS UM INDIVIDUO, MAS NAO ERA O CULPADO", DELAY);
+					printf("\n");
+					slowprint("CAPITAO FERNANDES - VOCE PRENDEU UM INOCENTE, O VERDADEIRO LADRAO SE ENTREGOU", DELAY);
+					printf("\n\n");
+					slowprint("CAPITAO FERNANDES - O VERDADEIRO LADRAO ERA: ", DELAY);
+					slowprint(caso.ladrao.nome, DELAY);
+					printf("\n\n");
+					slowprint("CAPITAO FERNANDES - VOCE ESTA DEMITIDO", DELAY);
+					printf("\n\n");
+					Sleep(1000);
+					system("pause");
+					return -123;
+
+				}
+				jogadorLog.pontos -= 100; // toda busca gera gasto, pagamento do policiais :)
+				printf("\n");
+				slowprint("CAPITAO FERNANDES - AS BUSCAS NAO RETORNARAM NADA", DELAY);
+				printf("\n");
+				Sleep(1000);
+
+			}
 
 			break;
 		case 5://Dossies
-			dossies();
+			dossies(); //ficha de todos os suspeitos
 			break;
+		case 6:
+			system("cls");
+			slowprint(caso.descricao, DELAY);
+			printf("\nPressione qualquer tecla para voltar...", DELAY);
+			system("pause>nul");
+			break;
+
+		case 7://tutorial
+			system("cls");
+			i = 0;
+			/*while (!feof(tuto)){
+				tutorial[i] = fgetc(tuto);
+				i++;
+			}
+			tutorial[i] = '\0';*/
+			slowprint(tutorial, DELAY);
+			printf("\n");
+			system("pause");
+
+			break;
+
 		case 0://sair
 			system("cls");
-			slowprint("Tem certeza?", DELAY);
+			slowprint("Tem certeza? (S-N)", DELAY);
+			printf("\n>>>");
 			fflush(stdin);
 			scanf("%c", &cf);
 
 			if (cf == 's' || cf == 'S'){
-				slowprint("Apagando historico...",DELAY);
+				slowprint("Apagando historico, Aguarde...", DELAY);
+				printf("\n");
 				Sleep(5000);
+				slowprint("APAGADO", DELAY);  // delay so pra irritar msm :)
+				Sleep(2000);
+				system("cls");
 			}
 			else{
 				option = -99;
@@ -518,22 +714,15 @@ int jogo(tipoJogador jogador, tipoCasos caso){
 			break;
 		}
 
-		
-		
 
-
-
-
-
-
-
+		if (jogadorLog.pontos <= 0){
+			system("cls");
+			slowprint(" VOCE GASTOU DEMAIS, A PF FALIU ", DELAY); // gastou muito, RUA
+			Sleep(1000);
+			break;
+		}
 
 	} while (option != 0);//tempo restante aqui
-
-	
-	
-
-
 
 
 
@@ -542,56 +731,77 @@ int jogo(tipoJogador jogador, tipoCasos caso){
 
 //procs do menu do jogo
 //feito
-int viajar(tipoCasos caso,int cidadeatual){
+int viajar(tipoCasos caso, int cidadeatual){
 	system("cls");
 
-	int i,cidadeescolhida;
+
+	int i, cidadeescolhida;
 
 	slowprint("Viajar:", DELAY);
 	printf("\n");
-	slowprint("Destinos>", DELAY);
-	if (cidadeatual == caso.qtdcidades){
+	slowprint("Destinos>\n", DELAY);
+	if (cidadeatual == caso.qtdcidades - 1){
 		//caso seja a ultima cidade disponivel so eh possivel voltar
-		printf("1 - %s\n", caso.cidades[cidadeatual - 2].nome);
-		printf("2 - %s\n", caso.cidades[cidadeatual - 1].nome);
+		printf("\n\t1 - %s\n", caso.cidades[cidadeatual - 2].nome);
+		printf("\t2 - %s\n", caso.cidades[cidadeatual - 1].nome);
+		printf("\t0 - Cancelar\n\n");
 		slowprint("Escolha uma cidade: ", DELAY);
-		printf("\n");
+		printf("\n>>>");
 		fflush(stdin);
 		scanf("%i", &cidadeescolhida);
 
-		if (cidadeescolhida == 1)
+		if (cidadeescolhida == 1){
+			jogadorLog.pontos -= 100 + rand() % 200;
 			cidadeescolhida = cidadeatual - 2;
-		else
+		}
+		else if (cidadeescolhida == 2){
 			cidadeescolhida = cidadeatual - 1;
-
+			jogadorLog.pontos -= 100 + rand() % 200;
+		}
+		else
+			return cidadeatual;
 	}
 	else if (cidadeatual == 0){
 		//caso seja a primeira cidade so eh possivel ir pra frente
-		printf("1 - %s\n", caso.cidades[cidadeatual + 2].nome);
-		printf("2 - %s\n", caso.cidades[cidadeatual + 1].nome);
+		printf("\n\t1 - %s\n", caso.cidades[cidadeatual + 2].nome);
+		printf("\t2 - %s\n", caso.cidades[cidadeatual + 1].nome);
+		printf("\t0 - Cancelar\n\n");
 		slowprint("Escolha uma cidade: ", DELAY);
-		printf("\n");
+		printf("\n>>>");
 		fflush(stdin);
 		scanf("%i", &cidadeescolhida);
 
-		if (cidadeescolhida == 1)
+		if (cidadeescolhida == 1){
 			cidadeescolhida = cidadeatual + 2;
-		else
+			jogadorLog.pontos -= 100 + rand() % 200;
+		}
+		else if (cidadeescolhida == 2){
 			cidadeescolhida = cidadeatual + 1;
+			jogadorLog.pontos -= 100 + rand() % 200;
+		}
+		else
+			return cidadeatual;
 	}
 	else{
 		//se nao pra frente e para tras
-		printf("\n\n1 - %s\n", caso.cidades[cidadeatual + 1].nome);
-		printf("2 - %s\n", caso.cidades[cidadeatual - 1].nome);
+		printf("\n\t1 - %s\n", caso.cidades[cidadeatual + 1].nome);
+		printf("\t2 - %s\n", caso.cidades[cidadeatual - 1].nome);
+		printf("\t0 - Cancelar\n\n");
 		slowprint("Escolha uma cidade: ", DELAY);
-		printf("\n");
+		printf("\n>>>");
 		fflush(stdin);
 		scanf("%i", &cidadeescolhida);
 
-		if (cidadeescolhida == 1)
+		if (cidadeescolhida == 1){
 			cidadeescolhida = cidadeatual + 1;
-		else
+			jogadorLog.pontos -= 100 + rand() % 200;
+		}
+		else if (cidadeescolhida == 2){
 			cidadeescolhida = cidadeatual - 1;
+			jogadorLog.pontos -= 100 + rand() % 200;
+		}
+		else
+			return cidadeatual;
 	}
 
 
@@ -599,10 +809,10 @@ int viajar(tipoCasos caso,int cidadeatual){
 }
 
 //feito
-void salvar(tipoJogador jogador,tipoCasos caso){
+void salvar(tipoJogador jogador, tipoCasos caso){
 	system("cls");
 
-	FILE *users = fopen("users.apc","rb+");
+	FILE *users = fopen("users.apc", "rb+");
 	if (!users){
 
 		printf("Erro ao salvar!!\n");
@@ -610,60 +820,68 @@ void salvar(tipoJogador jogador,tipoCasos caso){
 	}
 
 	tipoJogador aux;
-	int cont=0;
-
+	int cont = 0;
+	jogador = jogadorLog;
+	jogador.savepoint.cidadeatual = jogadorLog.savepoint.cidadeatual; // save das informacoes
+	jogador.savepoint.pistatual = jogadorLog.savepoint.pistatual;
 	jogador.savepoint.casoid = caso.id;
-	jogador.savepoint.pontuacao = jogador.pontos;
-	//jogador.savepoint.tempo = ;
+	jogador.savepoint.pontuacao = jogadorLog.pontos;
 
-	slowprint("Crie uma senha:",DELAY);
-	printf("\n");
-	slowprint("MAXIMO 10 CARACTERES", DELAY);
-	printf("\n>>>");
-	fflush(stdin);
-	gets(jogador.senha);
 
 	fseek(users, sizeof(tipoAdm), SEEK_SET);//depois do adm
 
 	while (!feof(users)){
 
-		fread(&aux, sizeof(tipoJogador), 1, users);
+		fread(&aux, sizeof(tipoJogador), 1, users); // leio o usuario
 
-		if (strcmp(aux.nome, jogador.nome) == 0){
-			rewind(users);
-			fseek(users, sizeof(tipoJogador)*cont,SEEK_SET);
+		if (strcmp(aux.nome, jogador.nome) == 0){// vejo se o nome eh igual
+			rewind(users);	//se sim
+			fseek(users, sizeof(tipoAdm), SEEK_SET);//depois do adm
+			fseek(users, sizeof(tipoJogador)*cont, SEEK_SET); //coloco o cursor antes do usuario lido, baseado no cont
 			fwrite(&jogador, sizeof(tipoJogador), 1, users);
 			printf("Jogo Salvo!\n");
 			fclose(users);
 			Sleep(3000);
+			cont = -1;
 			break;
 		}
-		cont++;
+		if (cont == -1)
+			break;
+		cont++;//conto quantos usuarios eu li
 	}
-
-	fwrite(&jogador, sizeof(tipoJogador), 1, users);
-	printf("Jogo Salvo\n");
-	fclose(users);
-	Sleep(3000);
-
+	if (cont != -1){// nao achei nenhum nome 
+		//crio novo cadatro
+		slowprint("Crie uma senha:", DELAY);
+		printf("\n");
+		slowprint("MAXIMO 10 CARACTERES", DELAY);
+		printf("\n>>>");
+		fflush(stdin);
+		gets(jogador.senha);
+		fwrite(&jogador, sizeof(tipoJogador), 1, users);
+		printf("Jogo Salvo\n");
+		fclose(users);
+		Sleep(3000);
+	}
 }
 
 //feito
-int investigar(tipoCasos caso,int pistatual,bool cidadefinal){
+int investigar(tipoCasos caso, int pistatual, bool cidadefinal){
 	system("cls");
 
 
+	jogadorLog.pontos -= 0 + rand() % 10;		//custo para interrogar, pague as pessoas e elas falarao :)
 
-	
+
 	if (cidadefinal == true){
 
-		slowprint("Cuidado voce esta perto!",DELAY);
+		slowprint("Cuidado voce esta perto!", DELAY);
 		printf("\n");
 		system("pause");
 		return pistatual;
 	}
 
-	if (pistatual >= caso.qtdPistas){
+	if (pistatual >= caso.qtdPistas || (rand() % 2) == 0){	//as vezes eles pegam seu dinheiro e nao falam nada :)
+		// BR eh foda
 
 		slowprint("Prefiro nao comentar", DELAY);
 		printf("\n");
@@ -677,7 +895,7 @@ int investigar(tipoCasos caso,int pistatual,bool cidadefinal){
 	}
 
 	return pistatual;
-	
+
 
 
 }
@@ -685,55 +903,279 @@ int investigar(tipoCasos caso,int pistatual,bool cidadefinal){
 //feito
 void dossies(){
 
+	//lista todos os suspeitos
 	FILE *suspeitos = fopen("suspeitos.apc", "rb");
 	tipoSuspeitos dossie[10];
-	int i=0,op=-1;
+	int i = 0, op = 0;
 
 	while (i < 10){
 
 		fread(&dossie[i], sizeof(tipoSuspeitos), 1, suspeitos);
 		i++;
 	}
-	
+	while (op != -1){
+		system("cls");
+		slowprint("Dossies:", DELAY);
+		printf("\n");
 
-	slowprint("Dossies:", DELAY);
-	printf("\n");
+		slowprint("Escolha um perfil:", DELAY);
+		printf("\n");
+		for (i = 0; i < 10; i++){
 
-	slowprint("Escolha um perfil:", DELAY);
-	printf("\n");
-	for (i = 0; i < 10; i++){
+			printf("%i - %s\n", i + 1, dossie[i].nome);
+		}
+		printf("0 - Voltar");
+		printf("\n>>>");
+		fflush(stdin);
+		scanf("%i", &op);
+		op--;
+		if (op == -1){
+			break;
+		}
+		system("cls");
 
-		printf("%i - %s\n", i+1,dossie[i].nome);
+		printf("Nome: %s\n", dossie[op].nome);
+		printf("Sexo: ");
+		if (dossie[op].sexo == 1){
+			printf("Masculino\n");
+		}
+		else{
+			printf("Feminino\n");
+		}
+		printf("Gosto por: %s\n", dossie[op].gosto);
+		printf("Caracteristicas: %s\n", dossie[op].caracteristica);
+		printf("Cabelo: %s\n", dossie[op].cabelo);
+		printf("Pressione qualquer tecla para voltar ao jogo...\n");
+		system("pause>nul");
+		fclose(suspeitos);
 	}
-	printf("\n>>>");
-	fflush(stdin);
-	scanf("%i", &op);
-	op--;
 
-	system("cls");
+}
 
-	printf("Nome: %s\n", dossie[op].nome);
-	printf("Sexo: ");
-	if (dossie[op].sexo == 1){
-		printf("Masculino\n");
-	}
-	else{
-		printf("Feminino\n");
-	}
-	printf("Gosto por: %s\n", dossie[op].gosto);
-	printf("Caracteristicas: %s\n", dossie[op].caracteristica);
-	printf("Cabelo: %s\n", dossie[op].cabelo);
-	printf("Pressione qualquer tecla para voltar ao jogo...\n");
-	system("pause>nul");
-	fclose(suspeitos);
-}	
-
-
+//feito
 int ordemDePrisao(tipoCasos caso){
 
+	FILE *suspeitos = fopen("suspeitos.apc", "rb");
+	tipoSuspeitos dossie[10], ordemDePrisao;
+	int i = 0, op = -1, pontos = 0, op1 = 1;
+
+	while (i < 10){
+
+		fread(&dossie[i], sizeof(tipoSuspeitos), 1, suspeitos);
+		i++;
+	}
+
+	strcpy(ordemDePrisao.cabelo, " ");
+	strcpy(ordemDePrisao.nome, " ");				//zero todas as informaçoes
+	strcpy(ordemDePrisao.caracteristica, " ");
+	strcpy(ordemDePrisao.gosto, " ");
+	ordemDePrisao.sexo = 0;
+
+	do{
+		system("cls");
+		slowprint("Ordem de prisao!", DELAY);
+		printf("\n");
+
+		slowprint("Defina as informacoes:", DELAY);
+		printf("\n\n");
+
+		slowprint("1 - Nome: ", DELAY);
+		printf("%s\n", ordemDePrisao.nome);
+		slowprint("2 - Sexo: ", DELAY);
+		if (ordemDePrisao.sexo == 1){
+			slowprint("Masculino", DELAY);
+			printf("\n");
+		}
+		else if (ordemDePrisao.sexo == 2){
+			slowprint("Feminino", DELAY);
+			printf("\n");
+		}
+		else{
+			slowprint(" ", DELAY);
+			printf("\n");
+		}
+		slowprint("3 - Cabelo: ", DELAY);
+		printf("%s\n", ordemDePrisao.cabelo);
+		slowprint("4 - Caracteristicas: ", DELAY);
+		printf("%s\n", ordemDePrisao.caracteristica);
+		slowprint("5 - Gosto por: ", DELAY);
+		printf("%s\n\n\n", ordemDePrisao.gosto);
+		slowprint("6 - Criar ordem", DELAY);
+		printf("\n");
+		slowprint("0 - Voltar", DELAY);
+		printf("\n>>>");
+		fflush(stdin);
+		scanf("%i", &op1);
+
+		switch (op1)
+		{
+
+		case 1://NOME
+			do{
+				system("cls");
+				i = 0;
+				while (i < 10){
+					printf("%i - %s\n", i + 1, dossie[i].nome);
+					i++;
+				}
+				printf("0 - Voltar\n>>>");
+				fflush(stdin);
+				scanf("%i", &op);
+				op--;
+				if (op != -1){
+					if (op < 9){
+						strcpy(ordemDePrisao.nome, dossie[op].nome);
+						break;
+					}
+				}
+
+			} while (op != -1);
+
+			break;
+		case 2://SEXO
+			do{
+				system("cls");
+				slowprint("1 - Masculino", DELAY);
+				printf("\n");
+				slowprint("2 - Feminino", DELAY);
+				printf("\n>>>");
+				fflush(stdin);
+				scanf("%i", &op);
+
+				if (op == 1 || op == 2){
+					ordemDePrisao.sexo = op;
+					break;
+				}
+
+
+				printf("OPCAO INVALIDA\n");
+				Sleep(500);
+			} while (op != 1 || op != 2);
+			break;
+		case 3:
+			do{
+				system("cls");
+				i = 0;
+				while (i < 10){
+					if (i == 6 || i == 8 || i == 9){
+						i++;
+					}
+					else{
+						printf("%i - %s\n", i + 1, dossie[i].cabelo);
+						i++;
+					}
+				}
+				printf("0 - Voltar\n>>>");
+				fflush(stdin);
+				scanf("%i", &op);
+				op--;
+				if (op != -1){
+					if (op < 9){
+						strcpy(ordemDePrisao.cabelo, dossie[op].cabelo);
+						break;
+					}
+				}
+
+			} while (op != -1);
+			break;
+		case 4:
+			do{
+				system("cls");
+				i = 0;
+				while (i < 10){
+					printf("%i - %s\n", i + 1, dossie[i].caracteristica);
+					i++;
+				}
+				printf("0 - Voltar\n>>>");
+				fflush(stdin);
+				scanf("%i", &op);
+				op--;
+				if (op != -1){
+					if (op < 9){
+						strcpy(ordemDePrisao.caracteristica, dossie[op].caracteristica);
+						break;
+					}
+				}
+
+			} while (op != -1);
+			break;
+		case 5:
+			do{
+				system("cls");
+				i = 0;
+				while (i < 10){
+					printf("%i - %s\n", i + 1, dossie[i].gosto);
+					i++;
+				}
+				printf("0 - Voltar\n>>>");
+				fflush(stdin);
+				scanf("%i", &op);
+				op--;
+				if (op != -1){
+					if (op < 9){
+						strcpy(ordemDePrisao.gosto, dossie[op].gosto);
+						break;
+					}
+				}
+
+			} while (op != -1);
+			break;
+		case 6:
+			if (strcmp(caso.ladrao.nome, ordemDePrisao.nome) == 0){			//cada acerto vale 1 ponto acertou tudo YOU WIN
+				pontos++;													// se nao acertar tudo perde dinheiro :)
+			}
+			else{
+				pontos--;
+			}
+
+			if (caso.ladrao.sexo == ordemDePrisao.sexo){
+				pontos++;
+			}
+			else{
+				pontos--;
+			}
+
+			if (strcmp(caso.ladrao.gosto, ordemDePrisao.gosto) == 0){
+				pontos++;
+			}
+			else{
+				pontos--;
+			}
+
+			if (strcmp(caso.ladrao.caracteristica, ordemDePrisao.caracteristica) == 0){
+				pontos++;
+			}
+			else{
+				pontos--;
+			}
+			if (strcmp(caso.ladrao.cabelo, ordemDePrisao.cabelo) == 0){
+				pontos++;
+			}
+			else{
+				pontos--;
+			}
+			fclose(suspeitos);
+			return pontos;// se acertar tudo ganha
+
+			break;
+		case 0:
+			fclose(suspeitos);
+			return 0;
+			break;
+		default:
+			slowprint("OPCAO INVALIDA", DELAY);
+			printf("\n");
+			Sleep(500);
+			break;
+		}
 
 
 
+	} while (op1 != 0);
+
+
+
+	fclose(suspeitos);
 	return 0;
 }
 
@@ -746,18 +1188,21 @@ int loginjogador(tipoJogador jogador){
 		return -1;
 	}
 	tipoJogador readedUser;
+	tipoAdm aux;
 
-	fread(&readedUser, sizeof(tipoJogador), 1, arqUsers);// o primeiro eh o ADM
+	fread(&aux, sizeof(tipoAdm), 1, arqUsers);// o primeiro eh o ADM
 
 	while (!feof(arqUsers)){
 
 		fread(&readedUser, sizeof(tipoJogador), 1, arqUsers);
 
-		if ( strcmp( readedUser.nome , jogador.nome ) == 0 ){
+		if (strcmp(readedUser.nome, jogador.nome) == 0){
 			//nome encontrado , verifica a senha
 
-			if (strcmp(readedUser.senha, jogador.senha) == 0 ){
+			if (strcmp(readedUser.senha, jogador.senha) == 0){
 				// Senha batem retorne OK
+				jogadorLog = readedUser;
+
 				fclose(arqUsers);
 				return 1;
 
@@ -776,7 +1221,7 @@ int loginjogador(tipoJogador jogador){
 			//Nomes diferem continue ate feof
 
 			continue;
-			
+
 		}
 
 
@@ -787,15 +1232,347 @@ int loginjogador(tipoJogador jogador){
 
 }
 
+int rankingeral(){
 
+	FILE *arqRanking = fopen("users.apc", "rb");
+	if (!arqRanking){
+		printf("ERRO: Arquivos de ranking inacessiveis\n");
+		Sleep(2000);
+		return -1;
+	}
+	tipoJogador readedPlayers[1000];
+	tipoJogador aux;
+	tipoAdm a;
+	int qtd = 0;
+	fread(&a, sizeof(tipoAdm), 1, arqRanking);
+	while (!feof(arqRanking)){
+		fread(&readedPlayers[qtd], sizeof(tipoJogador), 1, arqRanking); // leio os usuarios
+		qtd++;
+	}
+	qtd--;
+	int op, i, j;
+
+
+
+	do{
+		system("cls");
+		slowprint("Ranking", DELAY);
+		printf("\n");
+		slowprint("1 - Nome", DELAY);
+		printf("\n");
+		slowprint("2 - Nivel", DELAY);
+		printf("\n");
+		slowprint("3 - Dinheiro", DELAY);
+		printf("\n");
+		slowprint("0 - Voltar", DELAY);
+		printf("\n>>>");
+		scanf("%i", &op);
+
+		switch (op){
+
+
+		case 1://nome
+			system("cls");
+			slowprint("Nome			Nivel			Dinheiro", DELAY);
+			printf("\n________________________________________________________\n");
+
+			for (i = 0; i < qtd; i++){
+				//bubble sort
+				for (j = 0; j < qtd - 1; j++){
+					if (strcmp(readedPlayers[j].nome, readedPlayers[j + 1].nome) > 0){
+
+						aux = readedPlayers[j];
+						readedPlayers[j] = readedPlayers[j + 1];
+						readedPlayers[j + 1] = aux;
+
+					}
+				}
+			}
+
+			for (i = 0; i < qtd; i++){
+
+				printf("\n%s			%i			%i\n", readedPlayers[i].nome, readedPlayers[i].nivel, readedPlayers[i].savepoint.pontuacao);
+				Sleep(500);
+			}
+
+
+			printf("\nPressione qualquer tecla para voltar...");
+			system("pause>nul");
+			break;
+
+		case 2://nivel
+			system("cls");
+			slowprint("Posicao		Nome			Nivel			Dinheiro", DELAY);
+			printf("\n________________________________________________________________________\n");
+
+			for (i = 0; i < qtd; i++){
+				//bubble sort
+				for (j = 0; j < qtd - 1; j++){
+					if (readedPlayers[j].nivel < readedPlayers[j + 1].nivel){
+
+						aux = readedPlayers[j];
+						readedPlayers[j] = readedPlayers[j + 1];
+						readedPlayers[j + 1] = aux;
+
+					}
+				}
+			}
+
+			for (i = 0; i < qtd; i++){
+
+				printf("\n%i		%s			%i			%i\n", i + 1, readedPlayers[i].nome, readedPlayers[i].nivel, readedPlayers[i].savepoint.pontuacao);
+				Sleep(500);
+			}
+
+
+			printf("\nPressione qualquer tecla para voltar...");
+			system("pause>nul");
+
+			break;
+
+		case 3://money
+			system("cls");
+			slowprint("Posicao		Nome			Nivel			Dinheiro", DELAY);
+			printf("\n________________________________________________________________________\n");
+
+			for (i = 0; i < qtd; i++){
+				//bubble sort
+				for (j = 0; j < qtd - 1; j++){
+					if (readedPlayers[j].savepoint.pontuacao < readedPlayers[j + 1].savepoint.pontuacao){
+
+						aux = readedPlayers[j];
+						readedPlayers[j] = readedPlayers[j + 1];
+						readedPlayers[j + 1] = aux;
+
+					}
+				}
+			}
+
+			for (i = 0; i < qtd; i++){
+
+				printf("\n%i		%s			%i			%i\n", i + 1, readedPlayers[i].nome, readedPlayers[i].nivel, readedPlayers[i].savepoint.pontuacao);
+				Sleep(500);
+			}
+
+
+			printf("\nPressione qualquer tecla para voltar...");
+			system("pause>nul");
+			break;
+
+		case 0:
+			return 0;
+			break;
+
+		default:
+			slowprint("Opcao invalida", DELAY);
+			printf("\n");
+		}
+
+	} while (op != 0);
+
+	fclose(arqRanking);
+	return 0;
+
+
+
+}
+
+int rankingtop(){
+
+	FILE *rkg = fopen("users.apc", "rb");
+
+	// msmo do ranking geral mas limitado a 5 usuarios ou menos
+	tipoJogador readedPlayers[1000], aux;
+	int qtd = 0, i = 0, j;
+	tipoAdm a;
+	fread(&a, sizeof(tipoAdm), 1, rkg);
+	while (!feof(rkg)){
+
+		fread(&readedPlayers[qtd], sizeof(tipoJogador), 1, rkg);
+		qtd++;
+	}
+	qtd--;
+	slowprint("\n\n\t\t\t\t\t  ||TOP 5 - Nivel||\n\n", DELAY);
+	slowprint("\n\t\t\t\tPosicao    Nome        Nivel    Dinheiro", DELAY);
+	printf("\n\t\t\t\t________________________________________\n");
+
+	for (i = 0; i < qtd; i++){
+
+		for (j = 0; j < qtd - 1; j++){
+			if (readedPlayers[j].nivel < readedPlayers[j + 1].nivel){
+
+				aux = readedPlayers[j];
+				readedPlayers[j] = readedPlayers[j + 1];
+				readedPlayers[j + 1] = aux;
+
+			}
+		}
+	}
+
+	i = 0;
+	while (i < qtd && i < 5){
+		printf("\n\t\t\t\t%i          %s        %i             %i\n", i + 1, readedPlayers[i].nome, readedPlayers[i].nivel, readedPlayers[i].savepoint.pontuacao);
+		Sleep(500);
+		i++;
+	}
+	printf("\n\n");
+	fclose(rkg);
+	return 0;
+}
+
+
+void config(){
+
+	int op, aux;
+	char bkg, frg, cf, color[] = { 'c', 'o', 'l', 'o', 'r', ' ', '0', 'a', '\0' };
+	do{
+		system("cls");
+		slowprint("Configuracoes", DELAY);
+		printf("\n\n");
+		slowprint("1 - Definir velocidade de exibicao do texto", DELAY);
+		printf("\n");
+		slowprint("2 - Mudar cores", DELAY);
+		printf("\n");
+		slowprint("0 - Sair", DELAY);
+		printf("\n\n>>>");
+
+
+
+		scanf("%i", &op);
+
+
+		switch (op){
+
+		case 1://mudar o delay do slowprint
+			aux = DELAY;
+			slowprint("Digite o valor em milisegundos, entre cada letra:", DELAY);
+			printf("\n>>>");
+			fflush(stdin);
+			scanf("%i", &DELAY);
+
+			slowprint("Salvar configuracao?(S-N)", DELAY);
+			printf("\n>>>");
+			fflush(stdin);
+			scanf("%c", &cf);
+			if (cf == 's' || cf == 'S'){
+				break;
+			}
+			else{
+				DELAY = aux;
+
+			}
+
+			break;
+
+		case 2:// mudar a cor do CMD
+			slowprint("Qual cor voce quer mudar?", DELAY);
+			printf("\n\n");
+			slowprint("1 - Background (FUNDO)", DELAY);
+			printf("\n");
+			slowprint("2 - Texto (LETRAS)", DELAY);
+			printf("\n>>>");
+			fflush(stdin);
+			scanf("%i", &op);
+
+			switch (op){
+
+			case 1:
+				slowprint("Cores disponiveis", DELAY);
+				printf("\n\n");
+				slowprint("1 - Preto", DELAY);
+				printf("\n");
+				slowprint("2 - Azul", DELAY);
+				printf("\n");
+				slowprint("3 - Verde", DELAY);
+				printf("\n");
+				slowprint("4 - Verde-agua", DELAY);
+				printf("\n");
+				slowprint("5 - Vermelho", DELAY);
+				printf("\n");
+				slowprint("6 - Roxo", DELAY);
+				printf("\n");
+				slowprint("7 - Amarelo", DELAY);
+				printf("\n");
+				slowprint("8 - Branco", DELAY);
+				printf("\n>>>");
+				fflush(stdin);
+				scanf("%c", &bkg);
+				bkg--;
+				color[6] = bkg;
+				system(color);
+				slowprint("Salvar configuracao?(S-N)", DELAY);
+				printf("\n>>>");
+				fflush(stdin);
+				scanf("%c", &cf);
+				if (cf == 's' || cf == 'S'){
+					break;
+				}
+				else{
+					system("color 0a");
+
+				}
+				break;
+
+			case 2:
+				slowprint("Cores disponiveis", DELAY);
+				printf("\n\n");
+				slowprint("1 - Preto", DELAY);
+				printf("\n");
+				slowprint("2 - Azul", DELAY);
+				printf("\n");
+				slowprint("3 - Verde", DELAY);
+				printf("\n");
+				slowprint("4 - Verde-agua", DELAY);
+				printf("\n");
+				slowprint("5 - Vermelho", DELAY);
+				printf("\n");
+				slowprint("6 - Roxo", DELAY);
+				printf("\n");
+				slowprint("7 - Amarelo", DELAY);
+				printf("\n");
+				slowprint("8 - Branco", DELAY);
+				printf("\n>>>");
+				fflush(stdin);
+				scanf("%c", &frg);
+				frg--;
+				color[7] = frg;
+				system(color);
+				slowprint("Salvar configuracao?(S-N)", DELAY);
+				printf("\n>>>");
+				fflush(stdin);
+				scanf("%c", &cf);
+				if (cf == 's' || cf == 'S'){
+					break;
+				}
+				else{
+					system("color 0a");
+
+				}
+				break;
+
+			case 0:
+				break;
+
+			default:
+				slowprint("OPCAO INVALIDA", DELAY);
+				printf("\n");
+				Sleep(500);
+
+			}
+		}
+	} while (op != 0);
+
+
+}
 
 //adm
 int loginadm(tipoAdm adm) {			//retorna 1 se o login foi efetuado, 0 se nao.
-	/*FUNCIONAMENTO DOS ARQUIVOS DE LOGIN ADM
+	/*FUNCIONAMENTO DOS ARQUIVOS DE USUARIOS
 	<USUARIO:senha>
 	Ex.
 
-	<ADMIN:admin>
+	struct	tipoAdm{nome=ADMIN;senha=admin;};
+	struct	tipoJogador{...};
 
 	OBS: ADMS TEM O NOME EM LETRA MAIUSCULA E jogadores em minuscula
 	*/
@@ -935,31 +1712,32 @@ int addcaso(){
 		return 0;
 	}
 
-	tipoCasos casos,aux;
+	tipoCasos casos, aux;
 	tipoSuspeitos suspeitos[10];
-	int contapistas = 0, i = 0, contacidades = 0, op,endFile;
+	int contapistas = 0, i = 0, contacidades = 0, op;
+	bool endFile;
 	char cidade[100], pista[100], cf;
-
-	int qtd=1;
+	bool cadastrada = false;
+	int qtd = 1, cont = 0;
+	endFile = feof(arquivoCasos);
 	while (!feof(arquivoCasos)){// pego o id do ultimo cadastrado 
 		fread(&aux, sizeof(tipoCasos), 1, arquivoCasos);
-		endFile = feof(arquivoCasos);
+		qtd++; //conto os casos
+		cont++;
 	}
 	if (endFile == true){
-		qtd = 1;
+		qtd = 0;// nenhum caso cadastrado
 	}
-	else{
-		qtd = aux.id;
-	}
-	
+
+	casos.id = qtd++;
 
 	system("cls");
 	slowprint("Cadastro de Casos!", DELAY);
-	printf("\n\n");
 	//Formulario de prenchimento de casos
-
+	printf("\n\n");
 	slowprint("Bem vindo, Procurador  ", DELAY);
 	printf("%s\n", admLog.nome);
+	printf("\n\t\t\t\t\tCasos cadastrados = %i\n\n", cont - 1);
 
 	slowprint("Qual a dificuldade do caso:", DELAY);
 	printf("\n\t");
@@ -986,7 +1764,7 @@ int addcaso(){
 	slowprint("|!|MAXIMO 20 pistas|!|", DELAY);
 	printf("\n\n");
 
-	while (contapistas < 20 && contapistas < 7){
+	while (contapistas < 20 || contapistas < 7){
 		slowprint("Pista atual = ", DELAY);
 		printf("%i\n\n", contapistas + 1);
 
@@ -997,17 +1775,22 @@ int addcaso(){
 		gets_s(pista);
 		_strupr(pista);
 
-		if (strcmp(pista, "SAIR") == 0){
-			casos.qtdPistas = contapistas;
-			break;
+		if (strcmp(pista, "SAIR") == 0){//vejo se eh sair
+			if (contapistas < 7){
+				continue;
+			}
+			else{
+				casos.qtdPistas = contapistas;
+				break;
+			}
 		}
 		else{
 
-			strcpy(casos.pistas[contapistas].pista, pista);
+			strcpy(casos.pistas[contapistas].pista, pista); //salvo na struct
 
 		}
 		contapistas++;
-		if (contapistas == 20){
+		if (contapistas == 20){	// numero maximo atingido
 			slowprint("NUMERO MAXIMO DE PISTAS ATINGIDO!", DELAY);
 			printf("\n");
 			Sleep(1000);
@@ -1018,12 +1801,12 @@ int addcaso(){
 
 	}
 	system("cls");
-	slowprint("Insercao de cidades - Pressione ||ENTER|| ao final de cada uma, digite ||SAIR|| para finalizar",DELAY);
+	slowprint("Insercao de cidades - Pressione ||ENTER|| ao final de cada uma, digite ||SAIR|| para finalizar", DELAY);
 	printf("\n\n");
 	slowprint("MAX 30 cidades!", DELAY);
 	printf("\n\n");
 
-	while (contacidades < 30 && contacidades < 3){
+	while (contacidades < 30 || contacidades < 3){ // igual ao contapistas
 		slowprint("Cidade de No - ", DELAY);
 		printf("%i\n\n", contacidades + 1);
 
@@ -1037,14 +1820,19 @@ int addcaso(){
 
 		if (contacidades == 30){
 
-			slowprint("NUMERO MAXIMO DE CIDADES ATINGIDO!!",DELAY);
+			slowprint("NUMERO MAXIMO DE CIDADES ATINGIDO!!", DELAY);
 			Sleep(1000);
 			printf("\n");
 			break;
 		}
 		if (strcmp(cidade, "SAIR") == 0){
-			casos.qtdcidades=contacidades;
-			break;
+			if (contacidades < 3){
+				continue;
+			}
+			else{
+				casos.qtdcidades = contacidades;
+				break;
+			}
 		}
 		else{
 
@@ -1055,17 +1843,20 @@ int addcaso(){
 			fflush(stdin);
 			gets_s(casos.cidades[contacidades].historia);
 			_strupr(casos.cidades[contacidades].historia);
-			slowprint("Esta eh a cidade final do ladrao?, ou seja, a cidade em que o ladrao parou? (S/N)", DELAY);
-			printf("\n");
-			fflush(stdin);
-			scanf("%c", &cf);
+			if (cadastrada == false){
+				slowprint("Esta eh a cidade final do ladrao?, ou seja, a cidade em que o ladrao parou? (S/N)", DELAY);
+				printf("\n");
+				fflush(stdin);
+				scanf("%c", &cf);
 
-			if (cf == 's' || cf == 'S'){
+				if (cf == 's' || cf == 'S'){
 
-				casos.cidades[contacidades].cidadefinal = true;
-			}
-			else{
-				cf = NULL;
+					casos.cidades[contacidades].cidadefinal = true;
+					cadastrada = true;
+				}
+				else{
+					cf = NULL;
+				}
 			}
 		}
 		contacidades++;
@@ -1081,7 +1872,7 @@ int addcaso(){
 		fread(&suspeitos[i], sizeof(tipoSuspeitos), 1, arquivoSuspeitos);
 	}
 
-	do{
+	do{//printo
 		system("cls");
 		slowprint("Selecione o ladrao:", DELAY);
 		printf("\n\n");
@@ -1096,14 +1887,15 @@ int addcaso(){
 		printf("9 - %s\n", suspeitos[8].nome);
 		printf("10 - %s\n>>>", suspeitos[9].nome);
 		scanf("%i", &op);
-	
+
 	} while (op  < 1 || op > 10);
 	op--;
 	casos.ladrao = suspeitos[op];
-	
+
 
 	system("cls");
-	slowprint("Confirme os dados", DELAY);
+	slowprint("Confirme os dados", DELAY);//peco a confirmacao dos dados inseridos 	
+	//printo a struct inteira
 
 	printf("\n\nDificuldade = %i\n\n", casos.dificuldade);
 
@@ -1148,20 +1940,22 @@ int addcaso(){
 
 	if (cf == 's' || cf == 'S'){
 
-		casos.id = qtd++;
 		if (!fwrite(&casos, sizeof(tipoCasos), 1, arquivoCasos)){
+			fclose(arquivoCasos);
 			return 0;	//erro ao cadastrar
 		}
 		else{
+			fclose(arquivoCasos);
 			return 1; //sucesso ao cadastrar
 		}
 
 	}
 	else{
+		fclose(arquivoCasos);
 		return -1; // cancelado pelo usuario
 	}
 
-
+	fclose(arquivoCasos);
 	return 0;
 }
 
