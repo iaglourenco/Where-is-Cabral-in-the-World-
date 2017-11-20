@@ -11,6 +11,9 @@ Informaçoes Jogador
 usuario = Crie um a sua escolha
 senha = Crie um no ato do salvamento
 
+# Download
+https://github.com/iaglourenco/Where-is-Cabral-in-the-World-/releases/download/v1.0/WSCC-BR.zip
+
 # INFO:
 
 				  .:|| WHERE IS SERGIO CABRAL CREW IN BRAZIL? ||:.
