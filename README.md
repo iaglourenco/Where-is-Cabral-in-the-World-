@@ -11,7 +11,7 @@ Informaçoes Jogador
 usuario = Crie um a sua escolha
 senha = Crie um no ato do salvamento
 
-INFO:
+# INFO:
 
 				  .:|| WHERE IS SERGIO CABRAL CREW IN BRAZIL? ||:.
 
